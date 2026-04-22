@@ -569,10 +569,12 @@ function addEvent(type) {
       STATE.striker.balls++;
       STATE.partnershipBalls++;
       STATE.bowler.wickets++;
-      STATE.addedWickets += addedSec;
+  STATE.addedWickets += addedSec;
       recordDismissal(STATE.striker, type, STATE.bowler.name);
       resetStriker();
-      ballDisplay = 'W'; ballClass = 'wicket'; break;
+      ballDisplay = 'W'; ballClass = 'wicket';
+      setTimeout(function() { checkAllOut(); }, 400);
+      break;
 
     case 'caught':
       STATE.wickets++;
@@ -1518,47 +1520,271 @@ function toggleDew() {
 // ============================================================
 // INNINGS BREAK
 // ============================================================
-function showInningsBreak() {
-  const overlay = document.createElement('div');
-  overlay.className = 'innings-overlay';
-  overlay.id = 'innings-overlay';
-  overlay.innerHTML = `
-    <div class="innings-dialog">
-      <h2>🔔 INNINGS BREAK</h2>
-      <p>End of ${STATE.innings === 1 ? 'First' : 'Second'} Innings<br/>
-      Score: <strong style="color:var(--accent-green)">${STATE.runs}/${STATE.wickets}</strong> in ${getOversDisplay()} overs</p>
-      <p style="color:var(--accent-yellow);">+10 min delay added</p>
-      <button onclick="closeInningsBreak()">START SECOND INNINGS</button>
-    </div>
-  `;
-  document.body.appendChild(overlay);
+// ============================================================
+// ALL-OUT DETECTION
+// ============================================================
+function checkAllOut() {
+  // 10 wickets = all out (or user-set max wickets)
+  if (STATE.wickets >= 10) {
+    // Small delay so the W chip renders first
+    setTimeout(() => showAllOutModal(), 600);
+  }
 }
 
-function closeInningsBreak() {
-  const overlay = document.getElementById('innings-overlay');
-  if (overlay) overlay.remove();
+// ============================================================
+// ALL-OUT MODAL  (Step 1 of 3)
+// ============================================================
+function showAllOutModal() {
+  // Build scorecard rows
+  var rows = STATE.dismissals.map(function(d) {
+    return '<tr>' +
+      '<td style="color:var(--text-primary);font-weight:600;">' + d.name + '</td>' +
+      '<td style="color:var(--text-muted);font-size:0.7rem;">' + d.mode + ' b ' + d.bowler + '</td>' +
+      '<td style="color:var(--accent-green);font-family:Orbitron,monospace;font-weight:700;">' + d.runs + '</td>' +
+      '<td style="color:var(--text-secondary);">' + d.balls + '</td>' +
+      '<td style="color:var(--text-secondary);">' + d.fours + '</td>' +
+      '<td style="color:var(--accent-yellow);">' + d.sixes + '</td>' +
+      '<td style="color:var(--text-muted);">' + d.sr + '</td>' +
+    '</tr>';
+  }).join('');
+
+  var crr = STATE.legalBalls > 0 ? (STATE.runs / (STATE.legalBalls / 6)).toFixed(2) : '0.00';
+  var teamName = STATE.innings === 1 ? STATE.teamA : STATE.teamB;
+  var chasing  = STATE.innings === 1 ? STATE.teamB : STATE.teamA;
+
+  var html = '<div class="aom-overlay" id="allout-modal">' +
+    '<div class="aom-dialog">' +
+
+    // Header
+    '<div class="aom-header">' +
+    '<div class="aom-wkt-ring">10</div>' +
+    '<div>' +
+    '<h2 class="aom-title">ALL OUT!</h2>' +
+    '<p class="aom-subtitle">' + teamName + ' INNINGS COMPLETE</p>' +
+    '</div>' +
+    '</div>' +
+
+    // Summary stats
+    '<div class="aom-stats-bar">' +
+    '<div class="aom-stat"><div class="aom-stat-label">TOTAL</div><div class="aom-stat-val neon-green">' + STATE.runs + '/10</div></div>' +
+    '<div class="aom-stat"><div class="aom-stat-label">OVERS</div><div class="aom-stat-val">' + getOversDisplay() + '</div></div>' +
+    '<div class="aom-stat"><div class="aom-stat-label">RUN RATE</div><div class="aom-stat-val">' + crr + '</div></div>' +
+    '<div class="aom-stat"><div class="aom-stat-label">4s / 6s</div><div class="aom-stat-val">' + STATE.fours + ' / ' + STATE.sixes + '</div></div>' +
+    '<div class="aom-stat"><div class="aom-stat-label">EXTRAS</div><div class="aom-stat-val">' + STATE.extras + '</div></div>' +
+    '<div class="aom-stat"><div class="aom-stat-label">' + chasing + ' NEED</div><div class="aom-stat-val neon-yellow">' + (STATE.runs + 1) + '</div></div>' +
+    '</div>' +
+
+    // Scorecard table
+    '<div class="aom-scorecard">' +
+    '<table class="scorecard-table" style="font-size:0.72rem;">' +
+    '<thead><tr><th>BATTER</th><th>HOW OUT</th><th>R</th><th>B</th><th>4s</th><th>6s</th><th>SR</th></tr></thead>' +
+    '<tbody>' + rows + '</tbody>' +
+    '</table>' +
+    '</div>' +
+
+    // Break duration input
+    '<div class="aom-break-row">' +
+    '<div class="aom-break-label">⏱ SET INNINGS BREAK DURATION</div>' +
+    '<div class="aom-break-inputs">' +
+    '<button class="aom-preset" onclick="setBreakDuration(10)">10 min</button>' +
+    '<button class="aom-preset" onclick="setBreakDuration(15)">15 min</button>' +
+    '<button class="aom-preset" onclick="setBreakDuration(20)">20 min</button>' +
+    '<button class="aom-preset" onclick="setBreakDuration(30)">30 min</button>' +
+    '</div>' +
+    '<div class="aom-custom-row">' +
+    '<input type="number" id="break-min-input" value="20" min="1" max="60" class="aom-custom-input" /> minutes' +
+    '</div>' +
+    '</div>' +
+
+    // CTA button
+    '<button class="aom-start-btn" onclick="startInningsBreak()">' +
+    '🔔 START INNINGS BREAK' +
+    '</button>' +
+
+    '</div></div>';
+
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+function setBreakDuration(mins) {
+  var inp = document.getElementById('break-min-input');
+  if (inp) inp.value = mins;
+  // Highlight selected preset
+  document.querySelectorAll('.aom-preset').forEach(function(b) {
+    b.classList.toggle('aom-preset-active', parseInt(b.textContent) === mins);
+  });
+}
+
+// ============================================================
+// INNINGS BREAK COUNTDOWN  (Step 2 of 3)
+// ============================================================
+var breakInterval = null;
+
+function startInningsBreak() {
+  var inp = document.getElementById('break-min-input');
+  var minutes = parseInt((inp ? inp.value : 20)) || 20;
+  var totalSeconds = minutes * 60;
+
+  // Add time cost to prediction engine
+  STATE.totalAddedSeconds += totalSeconds;
+  STATE.addedRain += totalSeconds;   // reuse rain bucket for break
+
+  // Remove all-out modal
+  var aom = document.getElementById('allout-modal');
+  if (aom) aom.remove();
+
+  // Show countdown overlay
+  var teamA = STATE.teamA, teamB = STATE.teamB;
+  var score = STATE.runs + '/' + STATE.wickets;
+  var oversDone = getOversDisplay();
+
+  var html = '<div class="brk-overlay" id="break-overlay">' +
+    '<div class="brk-content">' +
+
+    // Team logos
+    '<div class="brk-teams">' +
+    '<div class="brk-team">' +
+    '<div class="brk-logo csk-logo">' + teamA + '</div>' +
+    '<div class="brk-team-label">BATTING: ' + teamB + '</div>' +
+    '</div>' +
+    '<div class="brk-vs">VS</div>' +
+    '<div class="brk-team">' +
+    '<div class="brk-logo rcb-logo">' + teamB + '</div>' +
+    '<div class="brk-team-label">BOWLING: ' + teamA + '</div>' +
+    '</div>' +
+    '</div>' +
+
+    // Score just completed
+    '<div class="brk-score-summary">' +
+    '<span class="brk-score-label">' + teamA + ' scored</span>' +
+    '<span class="brk-score-val">' + score + '</span>' +
+    '<span class="brk-score-label">in ' + oversDone + ' overs</span>' +
+    '<span class="brk-needs">' + teamB + ' need <strong>' + (STATE.runs + 1) + '</strong> runs to win</span>' +
+    '</div>' +
+
+    // Countdown heading
+    '<div class="brk-heading">INNINGS BREAK</div>' +
+    '<div class="brk-sub">2ND INNINGS STARTS IN</div>' +
+
+    // Big countdown
+    '<div class="brk-timer" id="brk-timer">' + formatCountdown(totalSeconds) + '</div>' +
+
+    // Progress bar
+    '<div class="brk-progress-wrap"><div class="brk-progress-bar" id="brk-bar"></div></div>' +
+
+    // Skip button
+    '<button class="brk-skip-btn" onclick="skipBreak(' + totalSeconds + ')">' +
+    '⏭ SKIP BREAK — START 2ND INNINGS NOW' +
+    '</button>' +
+
+    '</div>' +
+    '</div>';
+
+  document.body.insertAdjacentHTML('beforeend', html);
+
+  var remaining = totalSeconds;
+  var startTime = Date.now();
+
+  breakInterval = setInterval(function() {
+    var elapsed   = Math.floor((Date.now() - startTime) / 1000);
+    remaining     = Math.max(0, totalSeconds - elapsed);
+    var pct       = ((totalSeconds - remaining) / totalSeconds) * 100;
+
+    var timerEl = document.getElementById('brk-timer');
+    var barEl   = document.getElementById('brk-bar');
+    if (timerEl) timerEl.textContent = formatCountdown(remaining);
+    if (barEl)   barEl.style.width   = pct.toFixed(1) + '%';
+
+    if (remaining <= 0) {
+      clearInterval(breakInterval);
+      startSecondInnings();
+    }
+  }, 1000);
+}
+
+function skipBreak(totalSeconds) {
+  if (breakInterval) { clearInterval(breakInterval); breakInterval = null; }
+  startSecondInnings();
+}
+
+function formatCountdown(sec) {
+  var m = Math.floor(sec / 60);
+  var s = sec % 60;
+  return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+}
+
+// ============================================================
+// START 2ND INNINGS  (Step 3 of 3)
+// ============================================================
+function startSecondInnings() {
+  // Remove break overlay
+  var brk = document.getElementById('break-overlay');
+  if (brk) {
+    brk.style.animation = 'selFadeIn 0.3s ease reverse';
+    setTimeout(function() { if (brk) brk.remove(); }, 300);
+  }
+
   STATE.innings = 2;
-  // Reset batting
-  STATE.target = STATE.runs + 1;
-  document.getElementById('target-input').value = STATE.target;
+  STATE.target  = STATE.runs + 1;
+  var tInp = document.getElementById('target-input');
+  if (tInp) tInp.value = STATE.target;
+
+  // Reset batting stats
   STATE.runs = 0; STATE.wickets = 0; STATE.legalBalls = 0; STATE.totalBalls = 0;
   STATE.extras = 0; STATE.wides = 0; STATE.noBalls = 0; STATE.byes = 0; STATE.legByes = 0;
   STATE.fours = 0; STATE.sixes = 0;
   STATE.thisOverBalls = []; STATE.prevOverBalls = [];
   STATE.partnershipRuns = 0; STATE.partnershipBalls = 0;
-
-  // Reset players
-  STATE.striker = { name: 'Opener 1', runs: 0, balls: 0, fours: 0, sixes: 0, initials: 'O1' };
-  STATE.nonStriker = { name: 'Opener 2', runs: 0, balls: 0, fours: 0, sixes: 0, initials: 'O2' };
-  STATE.bowler = { name: STATE.bowler.name, overs: 0, legalBalls: 0, runs: 0, wickets: 0, wides: 0, nb: 0, initials: STATE.bowler.initials };
   STATE.oversCompleted = 0;
   STATE.dismissals = [];
   STATE.bowlerList = [];
   STATE.overRunRates = [];
   STATE.overRunsPerOver = [];
+  cskBatterIndex = 0;   // reset batter index for RCB
+  rcbBowlerIndex = 0;   // reset bowler index for CSK
+
+  // Set RCB openers
+  STATE.striker    = { name: RCB_BATTING_ORDER[0].name, initials: RCB_BATTING_ORDER[0].initials, runs: 0, balls: 0, fours: 0, sixes: 0 };
+  STATE.nonStriker = { name: RCB_BATTING_ORDER[1].name, initials: RCB_BATTING_ORDER[1].initials, runs: 0, balls: 0, fours: 0, sixes: 0 };
+  cskBatterIndex = 2;   // next incoming RCB batter is index 2
+
+  // Set CSK opening bowler (Jamie Overton / Anshul Kamboj)
+  var cskBowlers = CSK_BATTING_ORDER.filter(function(b) {
+    return ['Jamie Overton','Anshul Kamboj','Mukesh Choudhary','Noor Ahmad'].indexOf(b.name) >= 0;
+  });
+  var opener = cskBowlers[0] || { name: 'CSK Bowler', initials: 'CB' };
+  STATE.bowler = { name: opener.name, initials: opener.initials, overs: 0, legalBalls: 0, runs: 0, wickets: 0, wides: 0, nb: 0 };
+  rcbBowlerIndex = 1;
+
+  // Update target area in header
+  var tLabel = document.querySelector('.target-label');
+  if (tLabel) tLabel.textContent = 'TARGET';
+
+  // Update team brand hero display
+  var taName = document.getElementById('team-a-name');
+  var tbName = document.getElementById('team-b-name');
+  if (taName) taName.textContent = STATE.teamA + ' (BOWLING)';
+  if (tbName) tbName.textContent = STATE.teamB + ' (BATTING)';
+
+  // Sync settings inputs
+  var strInp = document.getElementById('striker-name-input');
+  var nsInp  = document.getElementById('nonstriker-name-input');
+  var bwInp  = document.getElementById('bowler-name-input');
+  if (strInp) strInp.value = STATE.striker.name;
+  if (nsInp)  nsInp.value  = STATE.nonStriker.name;
+  if (bwInp)  bwInp.value  = STATE.bowler.name;
 
   updateAllUI();
+  updateCharts();
+  updateScorecardUI();
 }
+
+// ── Kept for backward-compat (INNINGS BREAK button) ──────────
+function showInningsBreak() {
+  // Manual innings break just calls checkAllOut flow
+  showAllOutModal();
+}
+
 
 // ============================================================
 // UNDO

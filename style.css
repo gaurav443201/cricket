@@ -1271,3 +1271,214 @@ body {
 .sel-player-btn:hover:not([disabled]) .sel-arrow { transform: translateX(3px); opacity: 1; }
 .sel-player-btn.maxed .sel-arrow,
 .sel-player-btn.current-b .sel-arrow { color: var(--text-muted); }
+
+/* ============================================================
+   ALL-OUT MODAL  (Step 1 of 3)
+   ============================================================ */
+.aom-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.88);
+  backdrop-filter: blur(8px);
+  z-index: 3000;
+  display: flex; align-items: center; justify-content: center;
+  animation: selFadeIn 0.3s ease;
+}
+
+.aom-dialog {
+  background: linear-gradient(145deg, #07101f, #0b1829);
+  border: 1px solid rgba(255,77,109,0.3);
+  border-radius: 20px;
+  width: 680px; max-width: 95vw; max-height: 90vh;
+  display: flex; flex-direction: column; overflow: hidden;
+  box-shadow: 0 0 80px rgba(255,77,109,0.15), 0 40px 80px rgba(0,0,0,0.8);
+  animation: selSlideUp 0.35s cubic-bezier(0.34,1.56,0.64,1);
+}
+
+.aom-header {
+  display: flex; align-items: center; gap: 1.2rem;
+  padding: 1.4rem 1.6rem;
+  background: linear-gradient(135deg, rgba(255,30,60,0.2) 0%, rgba(100,0,20,0.3) 100%);
+  border-bottom: 1px solid rgba(255,77,109,0.2);
+}
+
+.aom-wkt-ring {
+  width: 56px; height: 56px; border-radius: 50%; flex-shrink: 0;
+  background: rgba(255,77,109,0.2);
+  border: 3px solid var(--accent-red);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Orbitron', monospace; font-size: 1.2rem; font-weight: 900; color: var(--accent-red);
+  box-shadow: 0 0 24px rgba(255,77,109,0.5);
+  animation: wktPulse 0.8s ease-in-out 5;
+}
+
+.aom-title {
+  font-family: 'Orbitron', monospace; font-size: 1.6rem;
+  font-weight: 900; color: var(--accent-red); margin: 0;
+  text-shadow: 0 0 20px rgba(255,77,109,0.5);
+}
+.aom-subtitle {
+  font-family: 'Rajdhani', sans-serif; font-size: 0.75rem;
+  color: var(--text-muted); letter-spacing: 2px; margin: 4px 0 0;
+  text-transform: uppercase;
+}
+
+.aom-stats-bar {
+  display: grid; grid-template-columns: repeat(6, 1fr);
+  gap: 8px; padding: 1rem 1.4rem;
+  background: rgba(255,255,255,0.02);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.aom-stat { text-align: center; }
+.aom-stat-label { font-size: 0.55rem; color: var(--text-muted); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 4px; }
+.aom-stat-val {
+  font-family: 'Orbitron', monospace; font-size: 1.05rem; font-weight: 700; color: var(--text-primary);
+}
+
+.aom-scorecard {
+  overflow-y: auto; max-height: 250px;
+  padding: 0.8rem 1.4rem;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+/* Break duration selector */
+.aom-break-row {
+  padding: 1rem 1.4rem;
+  background: rgba(255,255,255,0.02);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.aom-break-label {
+  font-size: 0.7rem; color: var(--accent-yellow);
+  letter-spacing: 1.5px; text-transform: uppercase; font-weight: 600; margin-bottom: 0.6rem;
+}
+.aom-break-inputs { display: flex; gap: 8px; margin-bottom: 8px; }
+.aom-preset {
+  flex: 1; padding: 7px; border-radius: 8px;
+  background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.25);
+  color: var(--accent-yellow); font-size: 0.75rem; font-weight: 600;
+  font-family: 'Rajdhani', sans-serif; cursor: pointer; transition: all 0.15s;
+}
+.aom-preset:hover { background: rgba(245,158,11,0.22); }
+.aom-preset-active {
+  background: rgba(245,158,11,0.3) !important;
+  border-color: var(--accent-yellow) !important;
+  box-shadow: 0 0 10px rgba(245,158,11,0.3);
+}
+.aom-custom-row { display: flex; align-items: center; gap: 8px; font-size: 0.75rem; color: var(--text-secondary); }
+.aom-custom-input {
+  width: 80px; padding: 6px 10px;
+  background: rgba(255,255,255,0.06); border: 1px solid var(--border-glass);
+  border-radius: 8px; color: var(--text-primary); font-size: 0.85rem;
+  font-family: 'Orbitron', monospace; text-align: center; outline: none;
+}
+.aom-custom-input:focus { border-color: var(--accent-yellow); }
+
+/* Start button */
+.aom-start-btn {
+  display: block; width: calc(100% - 2.8rem); margin: 1rem 1.4rem;
+  padding: 1rem; border-radius: 12px;
+  background: linear-gradient(135deg, rgba(0,214,143,0.15), rgba(0,214,143,0.05));
+  border: 1px solid rgba(0,214,143,0.4);
+  color: var(--accent-green); font-size: 1rem; font-weight: 700;
+  font-family: 'Rajdhani', sans-serif; letter-spacing: 2px;
+  cursor: pointer; text-transform: uppercase; transition: all 0.2s;
+}
+.aom-start-btn:hover {
+  background: linear-gradient(135deg, rgba(0,214,143,0.28), rgba(0,214,143,0.12));
+  box-shadow: 0 0 24px rgba(0,214,143,0.25); transform: translateY(-1px);
+}
+
+/* ============================================================
+   INNINGS BREAK COUNTDOWN  (Step 2 of 3)
+   ============================================================ */
+.brk-overlay {
+  position: fixed; inset: 0;
+  background: radial-gradient(ellipse at center, #030918 0%, #000407 100%);
+  z-index: 4000;
+  display: flex; align-items: center; justify-content: center;
+  animation: selFadeIn 0.5s ease;
+}
+
+.brk-content {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 1.2rem; text-align: center; max-width: 600px; width: 90%;
+}
+
+/* Team logos side by side */
+.brk-teams {
+  display: flex; align-items: center; gap: 2rem; margin-bottom: 0.5rem;
+}
+.brk-team { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
+.brk-logo {
+  width: 72px; height: 72px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Orbitron', monospace; font-size: 0.7rem; font-weight: 900;
+  letter-spacing: 1px;
+}
+.brk-team-label { font-size: 0.62rem; color: var(--text-muted); letter-spacing: 1.5px; text-transform: uppercase; }
+.brk-vs {
+  font-family: 'Orbitron', monospace; font-size: 1.4rem;
+  font-weight: 900; color: rgba(255,255,255,0.2);
+}
+
+/* 1st innings score summary */
+.brk-score-summary {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 0.8rem 2rem; border-radius: 12px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.07);
+}
+.brk-score-label { font-size: 0.65rem; color: var(--text-muted); letter-spacing: 1px; }
+.brk-score-val {
+  font-family: 'Orbitron', monospace; font-size: 2rem; font-weight: 900;
+  color: var(--accent-green); text-shadow: 0 0 20px rgba(0,214,143,0.5);
+}
+.brk-needs { font-size: 0.78rem; color: var(--accent-yellow); font-weight: 600; margin-top: 4px; }
+
+/* Countdown heading */
+.brk-heading {
+  font-family: 'Orbitron', monospace; font-size: 0.9rem; font-weight: 700;
+  color: var(--text-muted); letter-spacing: 4px; text-transform: uppercase;
+}
+.brk-sub {
+  font-size: 0.65rem; color: var(--text-secondary);
+  letter-spacing: 3px; text-transform: uppercase; margin-top: -0.8rem;
+}
+
+/* BIG countdown clock */
+.brk-timer {
+  font-family: 'Orbitron', monospace; font-size: 5rem; font-weight: 900;
+  color: var(--accent-yellow);
+  text-shadow: 0 0 40px rgba(245,158,11,0.6), 0 0 80px rgba(245,158,11,0.3);
+  letter-spacing: 8px;
+  animation: brk-tick 1s steps(1) infinite;
+}
+@keyframes brk-tick {
+  0%  { opacity: 1; }
+  50% { opacity: 0.85; }
+  100%{ opacity: 1; }
+}
+
+/* Progress bar */
+.brk-progress-wrap {
+  width: 100%; height: 6px; border-radius: 6px;
+  background: rgba(255,255,255,0.08); overflow: hidden;
+}
+.brk-progress-bar {
+  height: 100%; border-radius: 6px; width: 0%;
+  background: linear-gradient(90deg, var(--accent-green), var(--accent-yellow));
+  transition: width 1s linear;
+  box-shadow: 0 0 10px rgba(0,214,143,0.4);
+}
+
+/* Skip button */
+.brk-skip-btn {
+  margin-top: 0.5rem; padding: 0.7rem 2rem; border-radius: 10px;
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12);
+  color: var(--text-secondary); font-size: 0.72rem; font-weight: 600;
+  font-family: 'Rajdhani', sans-serif; letter-spacing: 1.5px;
+  cursor: pointer; text-transform: uppercase; transition: all 0.2s;
+}
+.brk-skip-btn:hover {
+  background: rgba(0,214,143,0.1); border-color: rgba(0,214,143,0.3);
+  color: var(--accent-green);
+}
