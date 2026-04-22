@@ -138,6 +138,10 @@ const STATE = {
 
   // Time elapsed
   elapsedInterval: null,
+
+  // Selection modal flags
+  pendingBatterSelection: false,
+  pendingBowlerSelection: false,
 };
 
 // ============================================================
@@ -701,6 +705,137 @@ function addEvent(type) {
 }
 
 // ============================================================
+// BATTER SELECTION MODAL
+// ============================================================
+function showBatterModal() {
+  const dismissedNames = new Set(STATE.dismissals.map(d => d.name));
+  const roster = STATE.innings === 1 ? CSK_BATTING_ORDER : RCB_BATTING_ORDER;
+  const occupied = new Set([STATE.striker.name, STATE.nonStriker.name]);
+
+  const remaining = roster.filter(b =>
+    !dismissedNames.has(b.name) && !occupied.has(b.name)
+  );
+
+  const listEl = document.getElementById('batter-list');
+  if (!listEl) return;
+
+  if (remaining.length === 0) {
+    listEl.innerHTML = '<div class="sel-empty">All batters dismissed! Match over.</div>';
+  } else {
+    listEl.innerHTML = remaining.map((b, idx) => {
+      const pos  = roster.indexOf(b) + 1;
+      const role = getPlayerRole(b.name);
+      const safeN = b.name.replace(/"/g, '&quot;');
+      return [
+        '<button class="sel-player-btn" onclick="selectBatter(&quot;' + safeN + '&quot;,&quot;' + b.initials + '&quot;)">',
+        '  <div class="sel-avatar csk-av">' + b.initials + '</div>',
+        '  <div class="sel-player-info">',
+        '    <div class="sel-player-name">' + b.name + '</div>',
+        '    <div class="sel-player-meta">Batting Pos ' + pos + ' &nbsp;&#183;&nbsp; ' + role + '</div>',
+        '  </div>',
+        '  <span class="sel-arrow">&#8594;</span>',
+        '</button>',
+      ].join('');
+    }).join('');
+  }
+
+  document.getElementById('batter-modal').classList.remove('sel-hidden');
+}
+
+function selectBatter(name, initials) {
+  STATE.striker = { name: name, initials: initials, runs: 0, balls: 0, fours: 0, sixes: 0 };
+  STATE.partnershipRuns  = 0;
+  STATE.partnershipBalls = 0;
+  document.getElementById('batter-modal').classList.add('sel-hidden');
+  var inp = document.getElementById('striker-name-input');
+  if (inp) inp.value = name;
+  updatePlayerUI();
+  updateQuickStats();
+}
+
+// ============================================================
+// BOWLER SELECTION MODAL
+// ============================================================
+function showBowlerModal() {
+  var nextOverNum = STATE.oversCompleted + 1;
+  var overLabel   = document.getElementById('bowler-modal-over');
+  if (overLabel) overLabel.textContent = nextOverNum;
+
+  var roster = STATE.innings === 1 ? RCB_BOWLING_ORDER :
+    CSK_BATTING_ORDER.filter(function(b) {
+      return ['Jamie Overton','Anshul Kamboj','Mukesh Choudhary','Noor Ahmad'].indexOf(b.name) >= 0;
+    });
+
+  var maxOvers   = Math.ceil(STATE.totalOvers / 5);
+  var lastBowler = STATE.bowler.name;
+  var listEl     = document.getElementById('bowler-list');
+  if (!listEl) return;
+
+  listEl.innerHTML = roster.map(function(b, i) {
+    var stats    = STATE.bowlerList.find(function(bl) { return bl.name === b.name; }) || { overs: 0, runs: 0, wickets: 0 };
+    var balls    = stats.overs || 0;
+    var oversStr = Math.floor(balls / 6) + '.' + (balls % 6);
+    var econ     = balls > 0 ? (stats.runs / (balls / 6)).toFixed(1) : '0.0';
+    var bowled   = Math.floor(balls / 6);
+    var isMaxed  = bowled >= maxOvers;
+    var isCurrent= b.name === lastBowler;
+    var dis      = (isMaxed || isCurrent) ? 'disabled' : '';
+    var cls      = isMaxed ? 'maxed' : (isCurrent ? 'current-b' : '');
+    var badge    = isCurrent ? '<span class="sel-badge curr-badge">Last Bowled</span>' :
+                  (isMaxed  ? '<span class="sel-badge max-badge">Quota Full</span>' : '');
+    var arrow    = (isMaxed || isCurrent) ? '&#10005;' : '&#8594;';
+    return [
+      '<button class="sel-player-btn ' + cls + '" ' + dis + ' onclick="selectBowler(' + i + ')">',
+      '  <div class="sel-avatar rcb-av">' + b.initials + '</div>',
+      '  <div class="sel-player-info">',
+      '    <div class="sel-player-name">' + b.name + ' ' + badge + '</div>',
+      '    <div class="sel-player-meta">' + oversStr + ' ov &nbsp;&#183;&nbsp; ' + stats.runs + ' runs &nbsp;&#183;&nbsp; ' + stats.wickets + ' wkts &nbsp;&#183;&nbsp; Econ ' + econ + '</div>',
+      '  </div>',
+      '  <span class="sel-arrow">' + arrow + '</span>',
+      '</button>',
+    ].join('');
+  }).join('');
+
+  document.getElementById('bowler-modal').classList.remove('sel-hidden');
+}
+
+function selectBowler(index) {
+  var roster = STATE.innings === 1 ? RCB_BOWLING_ORDER :
+    CSK_BATTING_ORDER.filter(function(b) {
+      return ['Jamie Overton','Anshul Kamboj','Mukesh Choudhary','Noor Ahmad'].indexOf(b.name) >= 0;
+    });
+  var chosen = roster[index];
+  if (!chosen) return;
+
+  var existingStats = STATE.bowlerList.find(function(b) { return b.name === chosen.name; });
+  STATE.bowler = {
+    name:       chosen.name,
+    initials:   chosen.initials,
+    legalBalls: existingStats ? existingStats.overs   : 0,
+    runs:       existingStats ? existingStats.runs    : 0,
+    wickets:    existingStats ? existingStats.wickets : 0,
+    wides: 0, nb: 0,
+    overs: existingStats ? (Math.floor(existingStats.overs / 6) + (existingStats.overs % 6) / 10) : 0,
+  };
+
+  document.getElementById('bowler-modal').classList.add('sel-hidden');
+  var inp = document.getElementById('bowler-name-input');
+  if (inp) inp.value = chosen.name;
+  updatePlayerUI();
+  updateScorecardUI();
+}
+
+function getPlayerRole(name) {
+  var wks = ['Sanju Samson (wk)','Phil Salt (wk)','Jitesh Sharma (wk)'];
+  var ars  = ['Shivam Dube','Jamie Overton','Krunal Pandya','Romario Shepherd'];
+  var bwls = RCB_BOWLING_ORDER.map(function(b){ return b.name; });
+  if (wks.indexOf(name)  >= 0) return 'Wicket-Keeper';
+  if (ars.indexOf(name)  >= 0) return 'All-Rounder';
+  if (bwls.indexOf(name) >= 0) return 'Bowler';
+  return 'Batsman';
+}
+
+// ============================================================
 // HELPER: OVERS DISPLAY
 // ============================================================
 function getOversDisplay() {
@@ -755,8 +890,11 @@ function completeOver() {
   STATE.prevOverBalls = [...STATE.thisOverBalls];
   STATE.thisOverBalls = [];
 
-  // Add bowler to list if not exists
+  // Add bowler to list
   updateBowlerList();
+
+  // Show bowler selector modal after a short delay
+  setTimeout(() => showBowlerModal(), 350);
 }
 
 function updateBowlerList() {
@@ -805,15 +943,10 @@ function recordDismissal(batter, mode, bowlerName) {
 }
 
 function resetStriker() {
-  const roster = STATE.innings === 1 ? CSK_BATTING_ORDER : RCB_BATTING_ORDER;
-  const idx     = Math.min(cskBatterIndex, roster.length - 1);
-  const batter  = roster[idx];
-  cskBatterIndex++;
-  STATE.striker = {
-    name: batter.name,
-    initials: batter.initials,
-    runs: 0, balls: 0, fours: 0, sixes: 0,
-  };
+  // Temporary placeholder shown while judge picks batter
+  STATE.striker = { name: '— Incoming —', initials: '?', runs: 0, balls: 0, fours: 0, sixes: 0 };
+  // Show batter picker modal
+  setTimeout(() => showBatterModal(), 350);
 }
 
 // ============================================================

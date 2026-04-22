@@ -618,6 +618,45 @@
 
   </div>
 
+  <!-- ═══════════════════════════════════════════════════════
+       BATTER SELECTION MODAL (shown after wicket falls)
+  ═══════════════════════════════════════════════════════ -->
+  <div id="batter-modal" class="sel-overlay sel-hidden">
+    <div class="sel-dialog">
+      <div class="sel-dialog-header csk-header">
+        <div class="sel-header-icon">🏏</div>
+        <div>
+          <h2 class="sel-title">SELECT NEXT BATTER</h2>
+          <p class="sel-subtitle">WICKET FALLEN · Choose CSK's incoming batsman</p>
+        </div>
+        <div class="sel-wkt-badge">W</div>
+      </div>
+      <div class="sel-list" id="batter-list">
+        <div class="sel-loading">Loading lineup…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       BOWLER SELECTION MODAL (shown after every over)
+  ═══════════════════════════════════════════════════════ -->
+  <div id="bowler-modal" class="sel-overlay sel-hidden">
+    <div class="sel-dialog">
+      <div class="sel-dialog-header rcb-header">
+        <div class="sel-header-icon">🎳</div>
+        <div>
+          <h2 class="sel-title">SELECT NEXT BOWLER</h2>
+          <p class="sel-subtitle">OVER COMPLETE · Choose RCB's bowler for Over <span id="bowler-modal-over">—</span></p>
+        </div>
+        <div class="sel-over-badge">OV</div>
+      </div>
+      <div class="sel-list" id="bowler-list">
+        <div class="sel-loading">Loading bowling lineup…</div>
+      </div>
+    </div>
+  </div>
+
+
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="app.js"></script>
 </body>
