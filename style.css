@@ -28,6 +28,24 @@
   --extras-height: 40px;
 }
 
+body.light-theme {
+  --bg-primary: #f0f4f8;
+  --bg-secondary: #ffffff;
+  --bg-card: rgba(255,255,255,1);
+  --bg-card-hover: rgba(240,244,248,1);
+  --border-glass: rgba(0,0,0,0.1);
+  --border-glow: rgba(0,214,143,0.3);
+  --accent-green: #00a66d;
+  --accent-green-dim: rgba(0,166,109,0.15);
+  --accent-red: #da3352;
+  --accent-red-dim: rgba(218,51,82,0.15);
+  --accent-yellow: #d97706;
+  --accent-yellow-dim: rgba(217,119,6,0.15);
+  --text-primary: #1e293b;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+}
+
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 html { font-size: 14px; scroll-behavior: smooth; }
@@ -1656,3 +1674,17 @@ body {
 .cm-btn-ok:hover {
   background: rgba(0,214,143,0.3); box-shadow: 0 0 15px rgba(0,214,143,0.4);
 }
+
+/* LIGHT THEME MODAL OVERRIDES */
+body.light-theme .custom-modal,
+body.light-theme .timing-toast,
+body.light-theme .ai-panel,
+body.light-theme .innings-break-overlay {
+  background: var(--bg-secondary);
+  border: 1px solid rgba(0,0,0,0.1);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+}
+body.light-theme .team-branding.csk-theme { background: linear-gradient(135deg, #f59e0b, #eab308); }
+body.light-theme .team-branding.rcb-theme { background: linear-gradient(135deg, #dc2626, #b91c1c); }
+body.light-theme .cm-icon { filter: drop-shadow(0 0 5px rgba(0,0,0,0.1)); }
+body.light-theme .custom-modal-overlay { background: rgba(255,255,255,0.85); backdrop-filter: blur(8px); }

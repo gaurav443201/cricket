@@ -2166,8 +2166,26 @@ function resetMatch() {
 }
 
 // ============================================================
-// UTILITY
+// UTILITY & THEME
 // ============================================================
+function toggleTheme() {
+  document.body.classList.toggle('light-theme');
+  var isLight = document.body.classList.contains('light-theme');
+  localStorage.setItem('cricket_theme_light', isLight);
+  document.getElementById('theme-icon').textContent = isLight ? '☀️' : '🌙';
+  document.getElementById('theme-label').textContent = isLight ? 'Light' : 'Dark';
+}
+
+function initTheme() {
+  if (localStorage.getItem('cricket_theme_light') === 'true') {
+    document.body.classList.add('light-theme');
+    var ti = document.getElementById('theme-icon');
+    var tl = document.getElementById('theme-label');
+    if (ti) ti.textContent = '☀️';
+    if (tl) tl.textContent = 'Light';
+  }
+}
+
 function showCustomAlert(title, message, icon) {
   var overlay = document.createElement('div');
   overlay.className = 'custom-modal-overlay';
@@ -2219,3 +2237,6 @@ function setStyleProp(id, prop, val) {
   const el = document.getElementById(id);
   if (el) el.style[prop] = val;
 }
+
+// Restore theme on load
+setTimeout(initTheme, 50);
