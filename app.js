@@ -2160,7 +2160,9 @@ function deleteSavedMatch(id) {
 
 function resetMatch() {
   if (!confirm('Reset the match? All data will be cleared.')) return;
-  location.reload();
+  localStorage.removeItem('cricket_state');
+  // Add query param to force bypass cache
+  window.location.href = window.location.pathname + '?reset=true';
 }
 
 // ============================================================
