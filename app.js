@@ -903,24 +903,6 @@ function showTimingToast(player, seconds, label) {
 // ============================================================
 // OPENAI API INTEGRATION
 // ============================================================
-function loadOpenAIKey() {
-  var saved = localStorage.getItem('cricket_openai_key');
-  if (saved) {
-    STATE.openaiKey = saved;
-    var inp = document.getElementById('openai-key-input');
-    if (inp) inp.value = '●'.repeat(Math.min(saved.length, 20));
-  }
-}
-
-function setOpenAIKey() {
-  var inp = document.getElementById('openai-key-input');
-  if (!inp || !inp.value.trim() || inp.value.startsWith('●')) return;
-  STATE.openaiKey = inp.value.trim();
-  localStorage.setItem('cricket_openai_key', STATE.openaiKey);
-  inp.value = '●'.repeat(Math.min(STATE.openaiKey.length, 20));
-  alert('✅ API Key saved securely in your browser!');
-}
-
 function buildMatchPrompt() {
   var crr    = STATE.legalBalls > 0 ? (STATE.runs / (STATE.legalBalls / 6)).toFixed(2) : '0.00';
   var remain = (STATE.totalOvers * 6) - STATE.legalBalls;
@@ -956,23 +938,15 @@ function formatTimeFromMinutes(totalMin) {
 }
 
 function getAIPrediction() {
-  var key = STATE.openaiKey || localStorage.getItem('cricket_openai_key');
-  if (!key) {
-    alert('⚠️ Set your OpenAI API key in Settings first.');
-    return;
-  }
-
   var btn = document.getElementById('ai-predict-btn');
   if (btn) { btn.textContent = '🤖 Thinking…'; btn.disabled = true; }
 
   var prompt = buildMatchPrompt();
 
-  fetch('https://api.openai.com/v1/chat/completions', {
+  // Calls our Node.js proxy server — key is read from Render env var server-side
+  fetch('/api/ai-predict', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer ' + key,
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       model: 'gpt-4o-mini',
       messages: [{ role: 'user', content: prompt }],
@@ -983,21 +957,20 @@ function getAIPrediction() {
   .then(function(r) { return r.json(); })
   .then(function(data) {
     if (btn) { btn.textContent = '🤖 AI Predict'; btn.disabled = false; }
-    if (data.error) { alert('OpenAI error: ' + data.error.message); return; }
+    if (data.error) { alert('AI error: ' + data.error.message); return; }
     try {
       var text = data.choices[0].message.content.trim();
       var json = JSON.parse(text.replace(/```json|```/g, '').trim());
       showAIInsightPanel(json);
       STATE.aiPrediction = json;
-      // Update the big predicted time display
       var el = document.getElementById('predicted-time-big');
       if (el) {
         el.textContent = json.endTime;
-        el.style.color = '#a78bfa'; // purple = AI prediction
+        el.style.color = '#a78bfa';
         el.title = 'AI Predicted: ' + json.reasoning;
       }
     } catch(e) {
-      alert('Could not parse AI response. Raw: ' + data.choices[0].message.content);
+      alert('Could not parse AI response: ' + data.choices[0].message.content);
     }
   })
   .catch(function(e) {
@@ -2209,6 +2182,3 @@ function setStyleProp(id, prop, val) {
   const el = document.getElementById(id);
   if (el) el.style[prop] = val;
 }
-
-// Restore OpenAI key on page load (debounced so DOM is ready)
-setTimeout(loadOpenAIKey, 500);

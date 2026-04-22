@@ -503,13 +503,6 @@
                 <label>Total Overs</label>
                 <input type="number" id="total-overs-input" value="20" min="1" max="50" onchange="updateTotalOvers()" />
               </div>
-              <div class="setting-item" style="grid-column:1/-1;">
-                <label>🤖 OpenAI API Key (for AI Prediction)</label>
-                <div style="display:flex;gap:8px;">
-                  <input type="password" id="openai-key-input" placeholder="sk-proj-…  (stored locally in browser)" style="flex:1;" />
-                  <button onclick="setOpenAIKey()" style="padding:7px 14px;background:rgba(167,139,250,0.15);border:1px solid rgba(167,139,250,0.4);border-radius:8px;color:#a78bfa;cursor:pointer;font-family:Rajdhani,sans-serif;font-size:0.8rem;font-weight:700;letter-spacing:1px;white-space:nowrap;">SAVE KEY</button>
-                </div>
-                <small style="color:var(--text-muted);font-size:0.62rem;">Your key is saved only in <em>this browser's localStorage</em> — never sent to any server other than OpenAI directly.</small>
               </div>
             </div>
             <button class="save-match-btn" style="margin-top:1rem;" onclick="resetMatch()">🔄 RESET MATCH</button>
