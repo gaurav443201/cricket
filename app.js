@@ -183,6 +183,8 @@ const TIME_COST = {
   'bowler-change': 20,
   'innings-break': 0,
   rain:            600,
+  timeout:         150,
+  injured:         120,
 };
 
 const TIME_REDUCE = {
@@ -470,6 +472,7 @@ function addEvent(type) {
     'batter-reset': 'btn-batter-reset',
     'over-complete': 'btn-over', 'bowler-change': 'btn-bowler',
     'innings-break': 'btn-innings',
+    'timeout': 'btn-timeout', 'injured': 'btn-injured',
   };
   const btnId = btnMap[type];
   if (btnId) {
@@ -649,6 +652,8 @@ function addEvent(type) {
     case 'equipment':
     case 'batter-reset':
     case 'freehit':
+    case 'timeout':
+    case 'injured':
       STATE.addedOther += addedSec;
       isLegal = false; break;
 
@@ -1474,6 +1479,7 @@ function getEventLabel(type) {
     freehit: '🎯 Free Hit', equipment: 'Equipment', 'batter-reset': 'Batter Reset',
     'over-complete': '✅ Over Done', 'bowler-change': 'Bowler Change',
     'innings-break': '🔔 Innings Break',
+    'timeout': '⏸ Timeout', 'injured': '🚑 Injured',
   };
   return labels[type] || type;
 }
