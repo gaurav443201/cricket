@@ -5,6 +5,48 @@
 'use strict';
 
 // ============================================================
+// CSK vs RCB – PLAYER ROSTERS
+// ============================================================
+const CSK_BATTING_ORDER = [
+  { name: 'Ruturaj Gaikwad (c)', initials: 'RG' },
+  { name: 'Urvil Patel',         initials: 'UP' },
+  { name: 'Matthew Short',       initials: 'MS' },
+  { name: 'Sarfaraz Khan',       initials: 'SK' },
+  { name: 'Dewald Brevis',       initials: 'DB' },
+  { name: 'Sanju Samson (wk)',   initials: 'SS' },
+  { name: 'Shivam Dube',         initials: 'SD' },
+  { name: 'Jamie Overton',       initials: 'JO' },
+  { name: 'Anshul Kamboj',       initials: 'AK' },
+  { name: 'Mukesh Choudhary',    initials: 'MC' },
+  { name: 'Noor Ahmad',          initials: 'NA' },
+];
+
+const RCB_BOWLING_ORDER = [
+  { name: 'Josh Hazlewood',    initials: 'JH' },
+  { name: 'Bhuvneshwar Kumar', initials: 'BK' },
+  { name: 'Rasikh Salam Dar',  initials: 'RS' },
+  { name: 'Krunal Pandya',     initials: 'KP' },
+  { name: 'Romario Shepherd',  initials: 'RO' },
+];
+
+const RCB_BATTING_ORDER = [
+  { name: 'Phil Salt (wk)',    initials: 'PS' },
+  { name: 'Virat Kohli',      initials: 'VK' },
+  { name: 'Devdutt Padikkal', initials: 'DP' },
+  { name: 'Rajat Patidar (c)',initials: 'RP' },
+  { name: 'Tim David',        initials: 'TD' },
+  { name: 'Jitesh Sharma (wk)',initials:'JS' },
+  { name: 'Romario Shepherd', initials: 'RO' },
+  { name: 'Krunal Pandya',    initials: 'KP' },
+  { name: 'Bhuvneshwar Kumar',initials: 'BK' },
+  { name: 'Josh Hazlewood',   initials: 'JH' },
+  { name: 'Rasikh Salam Dar', initials: 'RS' },
+];
+
+let cskBatterIndex = 2; // next batter to come in after first 2 openers dismissed
+let rcbBowlerIndex = 1; // next bowler to rotate to (Hazlewood is current=0)
+
+// ============================================================
 // STATE
 // ============================================================
 const STATE = {
@@ -142,15 +184,167 @@ const TIME_REDUCE = {
 // INIT
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
-  loadFromLocalStorage();
+  preSimulateCSKvsRCB();   // ← pre-load demo match
   initBaseTime();
-  updateAllUI();
   initCharts();
+  updateAllUI();
+  updateCharts();
+  updateHistoryUI();
+  updateScorecardUI();
   startClock();
   loadSavedMatches();
   startElapsedTimer();
   initSettings();
 });
+
+// ============================================================
+// PRE-SIMULATE: CSK vs RCB (Demo state for judges)
+// CSK batting, 8.4 overs done – mid-innings snapshot
+// ============================================================
+function preSimulateCSKvsRCB() {
+  // Team names
+  STATE.teamA   = 'CSK';
+  STATE.teamB   = 'RCB';
+  STATE.target  = 0;   // CSK batting first, no target yet
+  STATE.innings = 1;
+  STATE.totalOvers = 20;
+
+  // Score state – 8.4 overs (52 legal balls)
+  STATE.runs        = 78;
+  STATE.wickets     = 2;
+  STATE.legalBalls  = 52;
+  STATE.totalBalls  = 56; // 52 legal + 4 extras (3 wide, 1 NB)
+  STATE.extras      = 4;
+  STATE.wides       = 3;
+  STATE.noBalls     = 1;
+  STATE.byes        = 0;
+  STATE.legByes     = 0;
+  STATE.fours       = 6;
+  STATE.sixes       = 3;
+
+  // Partnership – Matthew Short & Sarfaraz Khan (ongoing)
+  STATE.partnershipRuns  = 38;
+  STATE.partnershipBalls = 26;
+
+  // ── CURRENT BATTERS ──────────────────────────────────────
+  STATE.striker    = { name: 'Matthew Short',   runs: 33, balls: 19, fours: 4, sixes: 2, initials: 'MS' };
+  STATE.nonStriker = { name: 'Sarfaraz Khan',   runs: 5,  balls: 7,  fours: 0, sixes: 0, initials: 'SK' };
+  cskBatterIndex   = 4;  // next in: Dewald Brevis
+
+  // ── CURRENT BOWLER ──────────────────────────────────────
+  STATE.bowler = { name: 'Josh Hazlewood', overs: 2, legalBalls: 16, runs: 24, wickets: 1, wides: 1, nb: 0, initials: 'JH' };
+  rcbBowlerIndex   = 1;  // next: Bhuvneshwar Kumar
+
+  // ── DISMISSALS (scorecard) ───────────────────────────────
+  STATE.dismissals = [
+    {
+      name: 'Ruturaj Gaikwad (c)', runs: 32, balls: 21,
+      fours: 4, sixes: 1, sr: '152.4',
+      mode: 'caught Kohli', bowler: 'Josh Hazlewood',
+    },
+    {
+      name: 'Urvil Patel', runs: 3, balls: 5,
+      fours: 0, sixes: 0, sr: '60.0',
+      mode: 'bowled', bowler: 'Bhuvneshwar Kumar',
+    },
+  ];
+
+  // ── BOWLER LIST (scorecard) ──────────────────────────────
+  STATE.bowlerList = [
+    { name: 'Josh Hazlewood',    overs: 16, runs: 24, wickets: 1 },
+    { name: 'Bhuvneshwar Kumar', overs: 12, runs: 15, wickets: 1 },
+    { name: 'Rasikh Salam Dar',  overs: 12, runs: 18, wickets: 0 },
+    { name: 'Krunal Pandya',     overs:  6, runs: 12, wickets: 0 },
+    { name: 'Romario Shepherd',  overs:  6, runs:  9, wickets: 0 },
+  ];
+
+  // ── OVER HISTORY (8 completed overs) ────────────────────
+  const overRuns = [8, 7, 12, 6, 9, 11, 8, 8]; // 8 overs → 69 runs
+  STATE.overRunsPerOver = [...overRuns];
+  let cumRuns = 0;
+  STATE.overRunRates = overRuns.map((r, i) => {
+    cumRuns += r;
+    return { over: i + 1, rr: parseFloat((cumRuns / (i + 1)).toFixed(2)) };
+  });
+  STATE.oversCompleted = 8;
+
+  // ── CURRENT OVER BALLS (over 9: 4 balls played) ─────────
+  STATE.thisOverBalls = [
+    { display: '4',  class: 'four'  },
+    { display: '1',  class: 'run-1' },
+    { display: 'WD', class: 'wide'  },
+    { display: '0',  class: 'dot'   },
+  ];
+  // This over: 4+1+0 = 5 runs (wide doesn't count for legal)
+
+  // ── PREVIOUS OVER BALLS (over 8) ────────────────────────
+  STATE.prevOverBalls = [
+    { display: '1',  class: 'run-1' },
+    { display: '6',  class: 'six'   },
+    { display: '0',  class: 'dot'   },
+    { display: '0',  class: 'dot'   },
+    { display: '1',  class: 'run-1' },
+    { display: '0',  class: 'dot'   },
+  ];
+
+  // ── TIME ADJUSTMENTS (pre-simulated over 8+ overs) ──────
+  STATE.totalAddedSeconds   = 318;
+  STATE.totalReducedSeconds = 76;
+  STATE.addedWides    = 42;  // 3 × 14
+  STATE.addedNB       = 16;  // 1 × 16
+  STATE.addedDRS      = 120; // 1 DRS review
+  STATE.addedWickets  = 75;  // caught(40) + bowled(35)
+  STATE.addedOvers    = 60;  // partial over completes
+  STATE.addedRain     = 0;
+  STATE.addedOther    = 5;
+  STATE.reducedBoundaries = 9;  // 6×1 + 3×1
+  STATE.reducedSixes      = 3;
+  STATE.reducedFast       = 50; // 5 fast overs × 10
+  STATE.reducedDew        = 0;
+  STATE.reducedOther      = 14;
+
+  // ── TIME SHIFT HISTORY (for timeline chart) ──────────────
+  STATE.timeShiftHistory = [
+    { added:9,   reduced:0,  net:9,   event:'1',            over:0.1 },
+    { added:12,  reduced:1,  net:11,  event:'4',            over:0.2 },
+    { added:8,   reduced:0,  net:8,   event:'dot',          over:0.3 },
+    { added:14,  reduced:0,  net:14,  event:'wide',         over:0.4 },
+    { added:9,   reduced:0,  net:9,   event:'1',            over:1.1 },
+    { added:40,  reduced:0,  net:40,  event:'caught',       over:2.1 },
+    { added:120, reduced:0,  net:120, event:'drs',          over:3.2 },
+    { added:15,  reduced:1,  net:14,  event:'6',            over:3.4 },
+    { added:35,  reduced:0,  net:35,  event:'bowled',       over:4.3 },
+    { added:30,  reduced:10, net:20,  event:'over-complete',over:5.0 },
+    { added:12,  reduced:1,  net:11,  event:'4',            over:6.2 },
+    { added:15,  reduced:1,  net:14,  event:'6',            over:7.1 },
+    { added:30,  reduced:10, net:20,  event:'over-complete',over:8.0 },
+    { added:12,  reduced:1,  net:11,  event:'4',            over:8.1 },
+    { added:9,   reduced:0,  net:9,   event:'1',            over:8.2 },
+    { added:14,  reduced:0,  net:14,  event:'wide',         over:8.3 },
+    { added:8,   reduced:0,  net:8,   event:'dot',          over:8.4 },
+  ];
+
+  // ── EVENT HISTORY (recent, shown in History tab) ─────────
+  STATE.eventHistory = [
+    { type:'dot',          ballDisplay:'0',   ballClass:'dot',    score:'78/2', overs:'8.4', timeShift:8,  timestamp:'7:52 PM' },
+    { type:'wide',         ballDisplay:'WD',  ballClass:'wide',   score:'78/2', overs:'8.3', timeShift:14, timestamp:'7:51 PM' },
+    { type:'1',            ballDisplay:'1',   ballClass:'run-1',  score:'77/2', overs:'8.2', timeShift:9,  timestamp:'7:51 PM' },
+    { type:'4',            ballDisplay:'4',   ballClass:'four',   score:'76/2', overs:'8.1', timeShift:11, timestamp:'7:50 PM' },
+    { type:'over-complete',ballDisplay:'',    ballClass:'',       score:'72/2', overs:'8.0', timeShift:20, timestamp:'7:49 PM' },
+    { type:'dot',          ballDisplay:'0',   ballClass:'dot',    score:'72/2', overs:'7.6', timeShift:8,  timestamp:'7:49 PM' },
+    { type:'1',            ballDisplay:'1',   ballClass:'run-1',  score:'72/2', overs:'7.5', timeShift:9,  timestamp:'7:48 PM' },
+    { type:'dot',          ballDisplay:'0',   ballClass:'dot',    score:'71/2', overs:'7.4', timeShift:8,  timestamp:'7:48 PM' },
+    { type:'dot',          ballDisplay:'0',   ballClass:'dot',    score:'71/2', overs:'7.3', timeShift:8,  timestamp:'7:47 PM' },
+    { type:'6',            ballDisplay:'6',   ballClass:'six',    score:'71/2', overs:'7.2', timeShift:14, timestamp:'7:47 PM' },
+    { type:'1',            ballDisplay:'1',   ballClass:'run-1',  score:'65/2', overs:'7.1', timeShift:9,  timestamp:'7:46 PM' },
+    { type:'over-complete',ballDisplay:'',    ballClass:'',       score:'64/2', overs:'7.0', timeShift:20, timestamp:'7:46 PM' },
+    { type:'4',            ballDisplay:'4',   ballClass:'four',   score:'64/2', overs:'6.6', timeShift:11, timestamp:'7:45 PM' },
+    { type:'6',            ballDisplay:'6',   ballClass:'six',    score:'60/2', overs:'6.5', timeShift:14, timestamp:'7:44 PM' },
+    { type:'bowled',       ballDisplay:'W',   ballClass:'wicket', score:'54/2', overs:'4.3', timeShift:35, timestamp:'7:35 PM' },
+    { type:'caught',       ballDisplay:'W',   ballClass:'wicket', score:'38/1', overs:'2.1', timeShift:40, timestamp:'7:25 PM' },
+    { type:'drs',          ballDisplay:'DRS', ballClass:'noball', score:'34/0', overs:'3.2', timeShift:120,timestamp:'7:28 PM' },
+  ];
+}
 
 function initBaseTime() {
   const input = document.getElementById('start-time-input');
@@ -199,8 +393,27 @@ function updatePlayers() {
 }
 
 function initSettings() {
+  // Sync input fields to pre-simulated CSK vs RCB state
+  const taInput  = document.getElementById('team-a-input');
+  const tbInput  = document.getElementById('team-b-input');
+  const tgtInput = document.getElementById('target-input');
+  const strInput = document.getElementById('striker-name-input');
+  const nsInput  = document.getElementById('nonstriker-name-input');
+  const bwInput  = document.getElementById('bowler-name-input');
+  if (taInput)  taInput.value  = 'CSK';
+  if (tbInput)  tbInput.value  = 'RCB';
+  if (tgtInput) tgtInput.value = '0';
+  if (strInput) strInput.value = STATE.striker.name;
+  if (nsInput)  nsInput.value  = STATE.nonStriker.name;
+  if (bwInput)  bwInput.value  = STATE.bowler.name;
   updateTeamNames();
   updatePlayers();
+}
+
+function setState_BowlerNameInputs() {
+  const bwInput = document.getElementById('bowler-name-input');
+  if (bwInput) bwInput.value = STATE.bowler.name;
+  updatePlayerUI();
 }
 
 function getInitials(name) {
@@ -392,8 +605,23 @@ function addEvent(type) {
     case 'fieldchange':
     case 'equipment':
     case 'batter-reset':
-    case 'bowler-change':
     case 'freehit':
+      STATE.addedOther += addedSec;
+      isLegal = false; break;
+
+    case 'bowler-change':
+      // Cycle to next RCB bowler
+      const bowlerRoster = STATE.innings === 1 ? RCB_BOWLING_ORDER : CSK_BATTING_ORDER.slice(7); // tail = bowl
+      const nextBowler   = bowlerRoster[rcbBowlerIndex % bowlerRoster.length];
+      rcbBowlerIndex++;
+      // Save current bowler stats to list before switching
+      updateBowlerList();
+      STATE.bowler = {
+        name: nextBowler.name,
+        initials: nextBowler.initials,
+        overs: 0, legalBalls: 0, runs: 0, wickets: 0, wides: 0, nb: 0,
+      };
+      setState_BowlerNameInputs();
       STATE.addedOther += addedSec;
       isLegal = false; break;
 
@@ -577,12 +805,14 @@ function recordDismissal(batter, mode, bowlerName) {
 }
 
 function resetStriker() {
-  const nextBatterNum = STATE.dismissals.length + 1;
-  const names = ['Opening 2', 'Batter 3', 'Batter 4', 'Batter 5', 'Batter 6', 'Batter 7', 'Batter 8', 'Batter 9', 'Tailender'];
+  const roster = STATE.innings === 1 ? CSK_BATTING_ORDER : RCB_BATTING_ORDER;
+  const idx     = Math.min(cskBatterIndex, roster.length - 1);
+  const batter  = roster[idx];
+  cskBatterIndex++;
   STATE.striker = {
-    name: names[Math.min(nextBatterNum, names.length - 1)],
+    name: batter.name,
+    initials: batter.initials,
     runs: 0, balls: 0, fours: 0, sixes: 0,
-    initials: `B${nextBatterNum + 1}`,
   };
 }
 

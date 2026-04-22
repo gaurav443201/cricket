@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Cricket Match Time Predictor – Live T20 match tracker with real-time score updates and predicted match end time. IPL-style dashboard." />
-  <title>Cricket Match Time Predictor</title>
+  <title>CSK vs RCB – Cricket Match Time Predictor</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@400;500;700;900&display=swap" rel="stylesheet" />
@@ -19,16 +19,16 @@
         <div class="brand-icon">🏏</div>
         <div class="brand-text">
           <span class="brand-title">CRICKET TIME PREDICTOR</span>
-          <span class="brand-sub">LIVE MATCH MANAGER</span>
+          <span class="brand-sub">CSK vs RCB • IPL 2025</span>
         </div>
         <div class="live-badge pulse-anim" id="live-badge">● LIVE</div>
       </div>
 
       <div class="scoreboard-center">
         <div class="team-block team-a">
-          <div class="team-logo" id="team-a-logo">RR</div>
+          <div class="team-logo csk-logo" id="team-a-logo">CSK</div>
           <div class="team-info">
-            <div class="team-name" id="team-a-name">TEAM A</div>
+            <div class="team-name" id="team-a-name">CHENNAI SUPER KINGS</div>
             <div class="score-display" id="score-display">
               <span class="score-runs" id="score-runs">0</span>
               <span class="score-sep">/</span>
@@ -54,14 +54,14 @@
 
         <div class="team-block team-b">
           <div class="team-info text-right">
-            <div class="team-name" id="team-b-name">TEAM B</div>
+            <div class="team-name" id="team-b-name">ROYAL CHALLENGERS BENGALURU</div>
             <div class="target-block">
-              <span class="target-label">TARGET</span>
-              <span class="target-val" id="target-val">160</span>
+              <span class="target-label">1st INNINGS</span>
+              <span class="target-val" id="target-val">—</span>
             </div>
             <div class="extras-display">EXTRAS: <span id="extras-display">0</span></div>
           </div>
-          <div class="team-logo team-b-logo" id="team-b-logo">KKR</div>
+          <div class="team-logo rcb-logo" id="team-b-logo">RCB</div>
         </div>
       </div>
 
@@ -471,32 +471,32 @@
             <div class="card-header">⚙️ MATCH SETTINGS</div>
             <div class="settings-grid">
               <div class="setting-item">
-                <label>Team A Name</label>
-                <input type="text" id="team-a-input" placeholder="e.g. Rajasthan Royals" value="TEAM A" onchange="updateTeamNames()" />
+                <label>Team A Name (Batting)</label>
+                <input type="text" id="team-a-input" placeholder="CSK" value="CSK" onchange="updateTeamNames()" />
               </div>
               <div class="setting-item">
-                <label>Team B Name</label>
-                <input type="text" id="team-b-input" placeholder="e.g. KKR" value="TEAM B" onchange="updateTeamNames()" />
+                <label>Team B Name (Bowling)</label>
+                <input type="text" id="team-b-input" placeholder="RCB" value="RCB" onchange="updateTeamNames()" />
               </div>
               <div class="setting-item">
-                <label>Target (Team B Set)</label>
-                <input type="number" id="target-input" placeholder="160" value="160" min="1" onchange="updateTarget()" />
+                <label>Target (2nd Innings only)</label>
+                <input type="number" id="target-input" placeholder="—" value="0" min="0" onchange="updateTarget()" />
               </div>
               <div class="setting-item">
                 <label>Match Start Time</label>
-                <input type="time" id="start-time-input" value="20:00" onchange="updateStartTime()" />
+                <input type="time" id="start-time-input" value="19:30" onchange="updateStartTime()" />
               </div>
               <div class="setting-item">
                 <label>Striker Name</label>
-                <input type="text" id="striker-name-input" placeholder="Y. Jaiswal" value="Y. Jaiswal" onchange="updatePlayers()" />
+                <input type="text" id="striker-name-input" placeholder="Matthew Short" value="Matthew Short" onchange="updatePlayers()" />
               </div>
               <div class="setting-item">
                 <label>Non-Striker Name</label>
-                <input type="text" id="nonstriker-name-input" placeholder="S. Sooryavanshi" value="S. Sooryavanshi" onchange="updatePlayers()" />
+                <input type="text" id="nonstriker-name-input" placeholder="Sarfaraz Khan" value="Sarfaraz Khan" onchange="updatePlayers()" />
               </div>
               <div class="setting-item">
-                <label>Bowler Name</label>
-                <input type="text" id="bowler-name-input" placeholder="V. Chakravarthy" value="V. Chakravarthy" onchange="updatePlayers()" />
+                <label>Current Bowler</label>
+                <input type="text" id="bowler-name-input" placeholder="Josh Hazlewood" value="Josh Hazlewood" onchange="updatePlayers()" />
               </div>
               <div class="setting-item">
                 <label>Total Overs</label>

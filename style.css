@@ -147,6 +147,32 @@ body {
   box-shadow: 0 0 15px rgba(139,92,246,0.2);
 }
 
+/* ── CSK (Chennai Super Kings) – Golden Yellow ─────────── */
+.csk-logo {
+  background: linear-gradient(135deg, #5a3900, #c8820a) !important;
+  border-color: rgba(255,185,0,0.55) !important;
+  color: #ffd700 !important;
+  box-shadow: 0 0 18px rgba(255,185,0,0.35) !important;
+  font-size: 0.7rem;
+  letter-spacing: 1px;
+}
+
+/* ── RCB (Royal Challengers Bengaluru) – Crimson Red ────── */
+.rcb-logo {
+  background: linear-gradient(135deg, #4a0010, #cc001a) !important;
+  border-color: rgba(220,30,50,0.55) !important;
+  color: #ff4d6d !important;
+  box-shadow: 0 0 18px rgba(220,30,50,0.35) !important;
+  font-size: 0.7rem;
+  letter-spacing: 1px;
+}
+
+/* CSK team-name accent */
+#team-a-name { color: #ffd700 !important; font-size: 0.7rem; }
+
+/* RCB team-name accent */
+#team-b-name { color: #ff6b80 !important; font-size: 0.7rem; }
+
 .team-info { display: flex; flex-direction: column; gap: 2px; }
 .team-name {
   font-family: 'Rajdhani', sans-serif;
