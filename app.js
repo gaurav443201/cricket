@@ -1098,13 +1098,13 @@ function updateTimePrediction() {
   
   const match_context = {
     close_match: STATE.innings === 2 && Math.abs(crr - rrr) < 2.5 && STATE.wickets < 8,
-    many_wickets: STATE.wickets >= 7
+    many_wickets: STATE.wickets >= 5
   };
   
-  // Default probabilities. In the future this could track real ML outputs from AI insight.
+  // Dynamic probability thresholds based on match time scaling
   let p10 = 0.5, p20 = 0.5, p30 = 0.5; 
-  if (remainingMin < 15) p10 = 0.8;
-  if (remainingMin < 30) p20 = 0.6;
+  if (remainingMin < 35) p10 = 0.8;
+  if (remainingMin < 60) p20 = 0.6;
   
   transport_decision(remainingMin, p10, p20, p30, match_context);
 
@@ -1183,14 +1183,16 @@ function formatSec(sec) {
 // ============================================================
 function transport_decision(predicted_time_remaining, p10, p20, p30, match_context) {
   let crowd = 'NORMAL';
-  if (predicted_time_remaining < 10) crowd = 'SURGE';
-  else if (predicted_time_remaining < 25) crowd = 'HIGH';
+  if (predicted_time_remaining < 20) crowd = 'SURGE';
+  else if (predicted_time_remaining < 45) crowd = 'HIGH';
 
   let alert_level = 'NORMAL';
   if (p10 >= 0.7) alert_level = 'HIGH ALERT';
   else if (p20 >= 0.4 && p20 < 0.7) alert_level = 'PREPARE';
 
-  let buses = 10;
+  // Base buses scale dynamically with Live Run Rate so user sees system actively adapting
+  const curr_rr = STATE.legalBalls > 0 ? (STATE.runs / (STATE.legalBalls / 6)) : 0;
+  let buses = 10 + Math.floor(curr_rr * 1.5);
   let delay = 0;
 
   if (crowd === 'SURGE') { buses += 20; delay = 5; }
@@ -1200,7 +1202,7 @@ function transport_decision(predicted_time_remaining, p10, p20, p30, match_conte
   else if (alert_level === 'PREPARE') { buses += 5; }
 
   if (match_context.close_match) { buses += 10; }
-  if (match_context.many_wickets) { buses -= 5; }
+  if (match_context.many_wickets) { buses -= Math.floor(buses * 0.3); } // 30% drop if many wickets
   if (buses < 0) buses = 0;
 
   let action = 'Monitoring';
