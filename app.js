@@ -940,8 +940,16 @@ function completeOver() {
   // Record timestamp for bowler selection delay tracking
   STATE.overCompleteTimestamp = Date.now();
 
-  // Show bowler selector modal after a short delay
-  setTimeout(() => showBowlerModal(), 350);
+  // Show bowler selector or trigger innings break
+  if (STATE.oversCompleted >= STATE.totalOvers) {
+    if (STATE.innings === 1) {
+      setTimeout(() => addEvent('innings-break'), 100);
+    } else {
+      setTimeout(() => alert('Match Complete!'), 400);
+    }
+  } else {
+    setTimeout(() => showBowlerModal(), 350);
+  }
 }
 
 function updateBowlerList() {
