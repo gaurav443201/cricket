@@ -196,7 +196,18 @@ const TIME_REDUCE = {
 // INIT
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
-  preSimulateCSKvsRCB();   // ← pre-load demo match
+  const params = new URLSearchParams(window.location.search);
+  const isReset = params.get('reset') === 'true';
+
+  if (isReset) {
+    // True zero start – bypass the CSKvsRCB simulation
+    // Clear URL so subsequent reloads don't accidentally reset
+    window.history.replaceState({}, document.title, window.location.pathname);
+  } else {
+    // Load the demo snapshot for judges
+    preSimulateCSKvsRCB();
+  }
+
   initBaseTime();
   initCharts();
   updateAllUI();
@@ -405,19 +416,30 @@ function updatePlayers() {
 }
 
 function initSettings() {
-  // Sync input fields to pre-simulated CSK vs RCB state
+  const isReset = new URLSearchParams(window.location.search).get('reset') === 'true';
+
   const taInput  = document.getElementById('team-a-input');
   const tbInput  = document.getElementById('team-b-input');
   const tgtInput = document.getElementById('target-input');
   const strInput = document.getElementById('striker-name-input');
   const nsInput  = document.getElementById('nonstriker-name-input');
   const bwInput  = document.getElementById('bowler-name-input');
-  if (taInput)  taInput.value  = 'CSK';
-  if (tbInput)  tbInput.value  = 'RCB';
-  if (tgtInput) tgtInput.value = '0';
+
+  if (isReset) {
+    if (taInput)  taInput.value  = 'TEAM A';
+    if (tbInput)  tbInput.value  = 'TEAM B';
+    if (tgtInput) tgtInput.value = '160';
+  } else {
+    // Demo CSK vs RCB match
+    if (taInput)  taInput.value  = 'CSK';
+    if (tbInput)  tbInput.value  = 'RCB';
+    if (tgtInput) tgtInput.value = '0';
+  }
+
   if (strInput) strInput.value = STATE.striker.name;
   if (nsInput)  nsInput.value  = STATE.nonStriker.name;
   if (bwInput)  bwInput.value  = STATE.bowler.name;
+
   updateTeamNames();
   updatePlayers();
 }
