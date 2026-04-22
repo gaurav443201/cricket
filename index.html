@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Cricket Match Time Predictor – Live T20 match tracker with real-time score updates and predicted match end time. IPL-style dashboard." />
+  <title>Cricket Match Time Predictor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@400;500;700;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app">
+
+    <!-- TOP SCOREBOARD BAR -->
+    <header class="scoreboard-header" id="scoreboard-header">
+      <div class="header-brand">
+        <div class="brand-icon">🏏</div>
+        <div class="brand-text">
+          <span class="brand-title">CRICKET TIME PREDICTOR</span>
+          <span class="brand-sub">LIVE MATCH MANAGER</span>
+        </div>
+        <div class="live-badge pulse-anim" id="live-badge">● LIVE</div>
+      </div>
+
+      <div class="scoreboard-center">
+        <div class="team-block team-a">
+          <div class="team-logo" id="team-a-logo">RR</div>
+          <div class="team-info">
+            <div class="team-name" id="team-a-name">TEAM A</div>
+            <div class="score-display" id="score-display">
+              <span class="score-runs" id="score-runs">0</span>
+              <span class="score-sep">/</span>
+              <span class="score-wickets" id="score-wickets">0</span>
+            </div>
+            <div class="overs-display">
+              <span id="overs-display">0.0</span> <span class="overs-label">OVERS</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="vs-stats">
+          <div class="stat-item">
+            <div class="stat-label">CRR</div>
+            <div class="stat-value" id="crr-val">0.00</div>
+          </div>
+          <div class="vs-text">VS</div>
+          <div class="stat-item">
+            <div class="stat-label">RRR</div>
+            <div class="stat-value rrr-val" id="rrr-val">—</div>
+          </div>
+        </div>
+
+        <div class="team-block team-b">
+          <div class="team-info text-right">
+            <div class="team-name" id="team-b-name">TEAM B</div>
+            <div class="target-block">
+              <span class="target-label">TARGET</span>
+              <span class="target-val" id="target-val">160</span>
+            </div>
+            <div class="extras-display">EXTRAS: <span id="extras-display">0</span></div>
+          </div>
+          <div class="team-logo team-b-logo" id="team-b-logo">KKR</div>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <div class="header-pill">🌡 T20 MATCH</div>
+        <div class="header-pill dew-pill" id="dew-pill-header">
+          <span>Dew</span>
+          <span class="toggle-btn off" id="dew-toggle-btn" onclick="toggleDew()">OFF</span>
+        </div>
+        <div class="header-pill rain-pill" id="rain-pill-header">
+          <span>🌧 Rain</span>
+          <span class="toggle-btn off" id="rain-toggle-btn" onclick="toggleRain()">OFF</span>
+        </div>
+        <div class="header-pill time-pill">
+          🕐 <span id="current-time-display">--:-- --</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- EXTRAS BAR -->
+    <div class="extras-bar">
+      <span>EXTRAS: <span id="extras-bar-val">0</span> (WD: <span id="wd-count">0</span>, NB: <span id="nb-count">0</span>, B: <span id="bye-count">0</span>, LB: <span id="lb-count">0</span>)</span>
+      <span class="this-over-label">THIS OVER:</span>
+      <div class="this-over-balls" id="this-over-balls">
+        <span class="ball-chip empty">—</span>
+      </div>
+      <span class="match-num">MATCH 1 • <span class="live-text">LIVE</span></span>
+    </div>
+
+    <!-- MAIN LAYOUT -->
+    <div class="main-layout">
+
+      <!-- LEFT PANEL: NAV + CONTROLS -->
+      <aside class="left-panel">
+        <nav class="side-nav">
+          <button class="nav-btn active" onclick="switchTab('dashboard')" id="nav-dashboard">
+            <span class="nav-icon">📊</span><span class="nav-label">Dashboard</span>
+          </button>
+          <button class="nav-btn" onclick="switchTab('scorecard')" id="nav-scorecard">
+            <span class="nav-icon">📋</span><span class="nav-label">Scorecard</span>
+          </button>
+          <button class="nav-btn" onclick="switchTab('analytics')" id="nav-analytics">
+            <span class="nav-icon">📈</span><span class="nav-label">Analytics</span>
+          </button>
+          <button class="nav-btn" onclick="switchTab('history')" id="nav-history">
+            <span class="nav-icon">🕑</span><span class="nav-label">History</span>
+          </button>
+          <button class="nav-btn" onclick="switchTab('settings')" id="nav-settings">
+            <span class="nav-icon">⚙️</span><span class="nav-label">Settings</span>
+          </button>
+        </nav>
+
+        <div class="controls-panel">
+          <div class="controls-header">
+            <span class="ctrl-icon">🏏</span> BALL / EVENT CONTROLS
+            <small>Click to add event & update time</small>
+          </div>
+
+          <!-- RUNS -->
+          <div class="btn-group-label">RUNS</div>
+          <div class="btn-row runs-row">
+            <button class="event-btn dot-btn" id="btn-dot" onclick="addEvent('dot')">DOT</button>
+            <button class="event-btn run-btn run-1" id="btn-1" onclick="addEvent('1')">1</button>
+            <button class="event-btn run-btn run-2" id="btn-2" onclick="addEvent('2')">2</button>
+            <button class="event-btn run-btn run-3" id="btn-3" onclick="addEvent('3')">3</button>
+            <button class="event-btn run-btn run-4 boundary-btn" id="btn-4" onclick="addEvent('4')">4</button>
+            <button class="event-btn run-btn run-6 boundary-btn six-btn" id="btn-6" onclick="addEvent('6')">6</button>
+          </div>
+
+          <!-- EXTRAS -->
+          <div class="btn-group-label">EXTRAS</div>
+          <div class="btn-row extras-row">
+            <button class="event-btn extra-btn wide-btn" id="btn-wide" onclick="addEvent('wide')">WIDE</button>
+            <button class="event-btn extra-btn nb-btn" id="btn-nb" onclick="addEvent('noball')">NO BALL</button>
+            <button class="event-btn extra-btn bye-btn" id="btn-bye" onclick="addEvent('bye')">BYE</button>
+            <button class="event-btn extra-btn lb-btn" id="btn-lb" onclick="addEvent('legbye')">LEG BYE</button>
+          </div>
+          <div class="btn-row">
+            <button class="event-btn extra-btn overthrow-btn" id="btn-overthrow" onclick="addEvent('overthrow')">OVERTHROW</button>
+          </div>
+
+          <!-- WICKETS -->
+          <div class="btn-group-label">WICKETS</div>
+          <div class="btn-row wickets-row">
+            <button class="event-btn wicket-btn" id="btn-bowled" onclick="addEvent('bowled')">BOWLED</button>
+            <button class="event-btn wicket-btn caught-btn" id="btn-caught" onclick="addEvent('caught')">CAUGHT</button>
+            <button class="event-btn wicket-btn" id="btn-lbw" onclick="addEvent('lbw')">LBW</button>
+          </div>
+          <div class="btn-row wickets-row">
+            <button class="event-btn wicket-btn runout-btn" id="btn-runout" onclick="addEvent('runout')">RUN OUT</button>
+            <button class="event-btn wicket-btn" id="btn-stumping" onclick="addEvent('stumping')">STUMPING</button>
+            <button class="event-btn wicket-btn" id="btn-hitwkt" onclick="addEvent('hitwkt')">HIT WKT</button>
+          </div>
+
+          <!-- OTHER EVENTS -->
+          <div class="btn-group-label">OTHER EVENTS</div>
+          <div class="btn-row other-row">
+            <button class="event-btn other-btn drs-btn" id="btn-drs" onclick="addEvent('drs')">DRS</button>
+            <button class="event-btn other-btn" id="btn-appeal" onclick="addEvent('appeal')">APPEAL</button>
+            <button class="event-btn other-btn" id="btn-fieldchange" onclick="addEvent('fieldchange')">FIELD CHANGE</button>
+          </div>
+          <div class="btn-row other-row">
+            <button class="event-btn other-btn freehit-btn" id="btn-freehit" onclick="addEvent('freehit')">FREE HIT</button>
+            <button class="event-btn other-btn" id="btn-equipment" onclick="addEvent('equipment')">EQUIPMENT</button>
+            <button class="event-btn other-btn" id="btn-batter-reset" onclick="addEvent('batter-reset')">BATTER RESET</button>
+          </div>
+
+          <!-- MATCH CONTROLS -->
+          <div class="btn-group-label">OVER &amp; MATCH</div>
+          <div class="btn-row match-row">
+            <button class="event-btn match-btn over-complete-btn" id="btn-over" onclick="addEvent('over-complete')">OVER COMPLETE</button>
+            <button class="event-btn match-btn" id="btn-bowler" onclick="addEvent('bowler-change')">BOWLER CHANGE</button>
+          </div>
+          <div class="btn-row">
+            <button class="event-btn match-btn innings-btn" id="btn-innings" onclick="addEvent('innings-break')">INNINGS BREAK</button>
+          </div>
+          <div class="btn-row match-row">
+            <button class="event-btn match-btn rain-btn" id="btn-rain" onclick="toggleRain()">🌧 RAIN TOGGLE</button>
+            <button class="event-btn match-btn dew-btn" id="btn-dew" onclick="toggleDew()">💧 DEW TOGGLE</button>
+          </div>
+
+          <!-- UNDO -->
+          <div class="btn-row">
+            <button class="event-btn undo-btn" id="btn-undo" onclick="undoLast()">↩ UNDO LAST</button>
+          </div>
+        </div>
+      </aside>
+
+      <!-- CENTER PANEL -->
+      <main class="center-panel" id="center-panel">
+
+        <!-- TAB: DASHBOARD -->
+        <div class="tab-content active" id="tab-dashboard">
+          <div class="center-top-row">
+            <!-- LIVE MATCH INFO -->
+            <div class="glass-card match-info-card">
+              <div class="card-header">
+                <span class="card-icon">⚡</span> LIVE MATCH INFO
+              </div>
+              <div class="match-stats-grid">
+                <div class="m-stat">
+                  <div class="m-stat-label">SCORE</div>
+                  <div class="m-stat-val" id="ms-score">0/0</div>
+                </div>
+                <div class="m-stat">
+                  <div class="m-stat-label">OVERS</div>
+                  <div class="m-stat-val" id="ms-overs">0.0</div>
+                </div>
+                <div class="m-stat">
+                  <div class="m-stat-label">RUN RATE</div>
+                  <div class="m-stat-val neon-green" id="ms-rr">0.00</div>
+                </div>
+                <div class="m-stat">
+                  <div class="m-stat-label">PARTNERSHIP</div>
+                  <div class="m-stat-val">
+                    <span id="ms-partnership">0</span>
+                    <small class="partnership-balls">(<span id="ms-partnership-balls">0</span>)</small>
+                    <div class="partnership-ring-wrap">
+                      <svg viewBox="0 0 36 36" class="mini-ring">
+                        <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                          fill="none" stroke="#1e2a3a" stroke-width="3" />
+                        <path id="partnership-ring" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                          fill="none" stroke="#00d68f" stroke-width="3"
+                          stroke-dasharray="0, 100" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+                <div class="m-stat">
+                  <div class="m-stat-label">EXTRAS</div>
+                  <div class="m-stat-val" id="ms-extras">0</div>
+                </div>
+                <div class="m-stat">
+                  <div class="m-stat-label">WICKETS</div>
+                  <div class="m-stat-val neon-red" id="ms-wickets">0</div>
+                </div>
+                <div class="m-stat">
+                  <div class="m-stat-label">BOUNDARIES</div>
+                  <div class="m-stat-val" id="ms-boundaries">
+                    <span id="fours-count">0</span> <small>4s</small> | <span id="sixes-count">0</span> <small>6s</small>
+                  </div>
+                </div>
+                <div class="m-stat">
+                  <div class="m-stat-label">LAST EVENT</div>
+                  <div class="m-stat-val last-event-val" id="ms-last-event">—</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- OVER SUMMARY -->
+            <div class="glass-card over-summary-card">
+              <div class="card-header">
+                <span class="card-icon">📝</span> OVER SUMMARY
+              </div>
+              <div class="over-summary-header">
+                <span><span id="os-overs">0.0</span> OVERS</span>
+                <span class="os-total"><span id="os-this-over-runs">0</span> RUNS THIS OVER</span>
+              </div>
+              <div class="over-balls-display" id="over-balls-display">
+                <!-- balls rendered by JS -->
+              </div>
+              <div class="prev-over-label">PREVIOUS OVER</div>
+              <div class="over-balls-display prev" id="prev-over-display">
+                <span class="ball-chip empty">—</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- RUN RATE TREND CHART -->
+          <div class="glass-card chart-card">
+            <div class="card-header">
+              <span class="card-icon">📉</span> RUN RATE TREND
+            </div>
+            <div class="chart-wrapper">
+              <canvas id="rr-chart" height="120"></canvas>
+            </div>
+          </div>
+
+          <!-- TIME PREDICTION ENGINE -->
+          <div class="glass-card time-prediction-card" id="time-prediction-card">
+            <div class="card-header neon-yellow-text">
+              <span class="card-icon">⏱</span> TIME PREDICTION ENGINE
+            </div>
+            <div class="time-pred-grid">
+              <div class="time-col">
+                <div class="time-col-title">TIME ADJUSTMENT BREAKDOWN</div>
+                <div class="time-added-box">
+                  <div class="ta-header neon-red-text">ADDED TIME (DELAY)</div>
+                  <div class="ta-total" id="added-time-total">+ 0 sec</div>
+                  <div class="ta-items" id="added-time-items">
+                    <div class="ta-row"><span>Wides</span><span id="added-wides">+0 sec</span></div>
+                    <div class="ta-row"><span>No Balls</span><span id="added-nb">+0 sec</span></div>
+                    <div class="ta-row"><span>DRS Reviews</span><span id="added-drs">+0 sec</span></div>
+                    <div class="ta-row"><span>Wickets</span><span id="added-wickets">+0 sec</span></div>
+                    <div class="ta-row"><span>Over Completes</span><span id="added-overs">+0 sec</span></div>
+                    <div class="ta-row"><span>Rain Delays</span><span id="added-rain">+0 sec</span></div>
+                    <div class="ta-row"><span>Other Events</span><span id="added-other">+0 sec</span></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="time-col">
+                <div class="time-col-title">&nbsp;</div>
+                <div class="time-reduced-box">
+                  <div class="ta-header neon-green-text">REDUCED TIME (FAST PLAY)</div>
+                  <div class="ta-total reduced" id="reduced-time-total">- 0 sec</div>
+                  <div class="ta-items">
+                    <div class="ta-row"><span>Boundaries</span><span id="reduced-boundaries">-0 sec</span></div>
+                    <div class="ta-row"><span>Sixes</span><span id="reduced-sixes">-0 sec</span></div>
+                    <div class="ta-row"><span>Fast Over Bonus</span><span id="reduced-fast">-0 sec</span></div>
+                    <div class="ta-row"><span>Dew Factor</span><span id="reduced-dew">-0 sec</span></div>
+                    <div class="ta-row"><span>Other Speed Ups</span><span id="reduced-other">-0 sec</span></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="time-col predicted-col">
+                <div class="time-col-title">PREDICTED MATCH END TIME</div>
+                <div class="predicted-time-big" id="predicted-time-big">—:— PM</div>
+                <div class="base-info">
+                  BASE TIME: <span id="base-time-display">—</span>
+                </div>
+                <div class="total-change" id="total-change-display">TOTAL CHANGE: —</div>
+              </div>
+
+              <div class="time-col confidence-col">
+                <div class="time-col-title">CONFIDENCE &amp; FACTORS</div>
+                <div class="confidence-ring-wrap">
+                  <svg viewBox="0 0 100 100" class="confidence-ring">
+                    <circle cx="50" cy="50" r="40" fill="none" stroke="#1e2a3a" stroke-width="8"/>
+                    <circle id="confidence-circle" cx="50" cy="50" r="40" fill="none"
+                      stroke="#f59e0b" stroke-width="8"
+                      stroke-dasharray="0 251.2" stroke-linecap="round"
+                      transform="rotate(-90 50 50)"/>
+                    <text x="50" y="50" text-anchor="middle" dy="0.3em" class="confidence-pct-text" id="confidence-text">0%</text>
+                  </svg>
+                  <div class="confidence-label">CONFIDENCE</div>
+                </div>
+                <div class="factors-list">
+                  <div class="factor-row">
+                    <span>🌤 Weather</span>
+                    <span class="factor-val good" id="f-weather">Good</span>
+                  </div>
+                  <div class="factor-row">
+                    <span>🏟 Pitch</span>
+                    <span class="factor-val" id="f-pitch">Batting</span>
+                  </div>
+                  <div class="factor-row">
+                    <span>💧 Dew Factor</span>
+                    <span class="factor-val warn" id="f-dew">Low</span>
+                  </div>
+                  <div class="factor-row">
+                    <span>📊 Over Rate</span>
+                    <span class="factor-val good" id="f-overrate">Good</span>
+                  </div>
+                  <div class="factor-row">
+                    <span>⚡ Interruptions</span>
+                    <span class="factor-val" id="f-interruptions">None</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- TIME SHIFT TIMELINE -->
+            <div class="time-shift-wrap">
+              <div class="card-header small-header">
+                <span class="card-icon">↕</span> TIME SHIFT TIMELINE
+              </div>
+              <div class="timeline-chart-wrap">
+                <canvas id="timeline-chart" height="60"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB: SCORECARD -->
+        <div class="tab-content" id="tab-scorecard">
+          <div class="glass-card scorecard-card">
+            <div class="card-header">📋 SCORECARD</div>
+            <div class="scorecard-table-wrap">
+              <table class="scorecard-table" id="scorecard-table">
+                <thead>
+                  <tr>
+                    <th>BATTER</th><th>HOW OUT</th><th>R</th><th>B</th><th>4s</th><th>6s</th><th>SR</th>
+                  </tr>
+                </thead>
+                <tbody id="scorecard-body">
+                  <tr><td colspan="7" class="empty-row">No dismissals yet</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="scorecard-table-wrap" style="margin-top:1rem;">
+              <div class="card-header">🏏 BOWLING</div>
+              <table class="scorecard-table" id="bowling-table">
+                <thead>
+                  <tr>
+                    <th>BOWLER</th><th>O</th><th>M</th><th>R</th><th>W</th><th>ECON</th>
+                  </tr>
+                </thead>
+                <tbody id="bowling-body">
+                  <tr><td colspan="6" class="empty-row">Match not started</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB: ANALYTICS -->
+        <div class="tab-content" id="tab-analytics">
+          <div class="glass-card">
+            <div class="card-header">📈 MATCH ANALYTICS</div>
+            <div class="analytics-grid">
+              <div class="analytics-item">
+                <div class="ai-label">Dot Ball %</div>
+                <div class="ai-val" id="a-dot-pct">0%</div>
+                <div class="progress-bar"><div class="progress-fill green" id="a-dot-bar" style="width:0%"></div></div>
+              </div>
+              <div class="analytics-item">
+                <div class="ai-label">Boundary %</div>
+                <div class="ai-val" id="a-boundary-pct">0%</div>
+                <div class="progress-bar"><div class="progress-fill yellow" id="a-boundary-bar" style="width:0%"></div></div>
+              </div>
+              <div class="analytics-item">
+                <div class="ai-label">Extra %</div>
+                <div class="ai-val" id="a-extra-pct">0%</div>
+                <div class="progress-bar"><div class="progress-fill red" id="a-extra-bar" style="width:0%"></div></div>
+              </div>
+              <div class="analytics-item">
+                <div class="ai-label">Wicket Rate</div>
+                <div class="ai-val" id="a-wicket-rate">0 per 6</div>
+              </div>
+              <div class="analytics-item">
+                <div class="ai-label">Average Score/Over</div>
+                <div class="ai-val" id="a-avg-over">0.0</div>
+              </div>
+              <div class="analytics-item">
+                <div class="ai-label">Projected Score</div>
+                <div class="ai-val neon-green" id="a-projected">0</div>
+              </div>
+            </div>
+            <div class="chart-wrapper" style="margin-top:1rem;">
+              <canvas id="analytics-chart" height="180"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB: HISTORY -->
+        <div class="tab-content" id="tab-history">
+          <div class="glass-card">
+            <div class="card-header">🕑 EVENT HISTORY</div>
+            <div class="history-list" id="history-list">
+              <div class="empty-history">No events yet. Start adding balls!</div>
+            </div>
+          </div>
+          <div class="glass-card" style="margin-top:1rem;">
+            <div class="card-header">💾 SAVED MATCHES</div>
+            <div id="saved-matches-list" class="history-list">
+              <div class="empty-history">No saved matches.</div>
+            </div>
+            <button class="save-match-btn" onclick="saveMatch()">💾 SAVE CURRENT MATCH</button>
+          </div>
+        </div>
+
+        <!-- TAB: SETTINGS -->
+        <div class="tab-content" id="tab-settings">
+          <div class="glass-card settings-card">
+            <div class="card-header">⚙️ MATCH SETTINGS</div>
+            <div class="settings-grid">
+              <div class="setting-item">
+                <label>Team A Name</label>
+                <input type="text" id="team-a-input" placeholder="e.g. Rajasthan Royals" value="TEAM A" onchange="updateTeamNames()" />
+              </div>
+              <div class="setting-item">
+                <label>Team B Name</label>
+                <input type="text" id="team-b-input" placeholder="e.g. KKR" value="TEAM B" onchange="updateTeamNames()" />
+              </div>
+              <div class="setting-item">
+                <label>Target (Team B Set)</label>
+                <input type="number" id="target-input" placeholder="160" value="160" min="1" onchange="updateTarget()" />
+              </div>
+              <div class="setting-item">
+                <label>Match Start Time</label>
+                <input type="time" id="start-time-input" value="20:00" onchange="updateStartTime()" />
+              </div>
+              <div class="setting-item">
+                <label>Striker Name</label>
+                <input type="text" id="striker-name-input" placeholder="Y. Jaiswal" value="Y. Jaiswal" onchange="updatePlayers()" />
+              </div>
+              <div class="setting-item">
+                <label>Non-Striker Name</label>
+                <input type="text" id="nonstriker-name-input" placeholder="S. Sooryavanshi" value="S. Sooryavanshi" onchange="updatePlayers()" />
+              </div>
+              <div class="setting-item">
+                <label>Bowler Name</label>
+                <input type="text" id="bowler-name-input" placeholder="V. Chakravarthy" value="V. Chakravarthy" onchange="updatePlayers()" />
+              </div>
+              <div class="setting-item">
+                <label>Total Overs</label>
+                <input type="number" id="total-overs-input" value="20" min="1" max="50" onchange="updateTotalOvers()" />
+              </div>
+            </div>
+            <button class="save-match-btn" style="margin-top:1rem;" onclick="resetMatch()">🔄 RESET MATCH</button>
+          </div>
+        </div>
+      </main>
+
+      <!-- RIGHT PANEL: PLAYER INFO -->
+      <aside class="right-panel">
+
+        <!-- STRIKER -->
+        <div class="glass-card player-card striker-card">
+          <div class="player-card-header">
+            <span class="player-role-badge striker-badge">🏏 BATTER – STRIKER</span>
+          </div>
+          <div class="player-info">
+            <div class="player-avatar" id="striker-avatar">YJ</div>
+            <div class="player-details">
+              <div class="player-name" id="striker-name">Y. Jaiswal</div>
+              <div class="player-score">
+                <span class="player-runs" id="striker-runs">0</span>
+                <span class="player-balls">(<span id="striker-balls">0</span>)</span>
+              </div>
+              <div class="player-stats">
+                4s: <span id="striker-fours">0</span> | 6s: <span id="striker-sixes">0</span>
+              </div>
+              <div class="player-sr">SR: <span id="striker-sr">0.00</span></div>
+            </div>
+          </div>
+          <div class="sr-bar-wrap">
+            <div class="sr-bar-fill" id="striker-sr-bar" style="width:0%"></div>
+          </div>
+        </div>
+
+        <!-- NON-STRIKER -->
+        <div class="glass-card player-card non-striker-card">
+          <div class="player-card-header">
+            <span class="player-role-badge nonstriker-badge">🏃 BATTER – NON STRIKER</span>
+          </div>
+          <div class="player-info">
+            <div class="player-avatar nonstriker-av" id="nonstriker-avatar">SS</div>
+            <div class="player-details">
+              <div class="player-name" id="nonstriker-name">S. Sooryavanshi</div>
+              <div class="player-score">
+                <span class="player-runs" id="nonstriker-runs">0</span>
+                <span class="player-balls">(<span id="nonstriker-balls">0</span>)</span>
+              </div>
+              <div class="player-stats">
+                4s: <span id="nonstriker-fours">0</span> | 6s: <span id="nonstriker-sixes">0</span>
+              </div>
+              <div class="player-sr">SR: <span id="nonstriker-sr">0.00</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- BOWLER -->
+        <div class="glass-card player-card bowler-card">
+          <div class="player-card-header">
+            <span class="player-role-badge bowler-badge">🎳 BOWLER</span>
+          </div>
+          <div class="player-info">
+            <div class="player-avatar bowler-av" id="bowler-avatar">VC</div>
+            <div class="player-details">
+              <div class="player-name" id="bowler-name">V. Chakravarthy</div>
+              <div class="player-score">
+                <span id="bowler-overs">0.0</span>–<span id="bowler-runs">0</span>
+              </div>
+              <div class="player-stats">
+                W: <span id="bowler-wkts">0</span> | Econ: <span id="bowler-econ">0.00</span>
+              </div>
+              <div class="bowler-stats-mini">
+                <span class="bsm-label">0</span>
+                <span class="bsm-label">4</span>
+                <span class="bsm-label">1</span>
+                <span class="bsm-label wd-chip">WD <span id="bowler-wides">0</span></span>
+                <span class="bsm-label">NB <span id="bowler-nb">0</span></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- QUICK STATS -->
+        <div class="glass-card quick-stats-card">
+          <div class="card-header small-header">⚡ QUICK STATS</div>
+          <div class="qs-grid">
+            <div class="qs-item">
+              <div class="qs-label">BALLS LEFT</div>
+              <div class="qs-val" id="qs-balls-left">120</div>
+            </div>
+            <div class="qs-item">
+              <div class="qs-label">RUNS NEEDED</div>
+              <div class="qs-val neon-yellow" id="qs-runs-needed">—</div>
+            </div>
+            <div class="qs-item">
+              <div class="qs-label">TIME ELAPSED</div>
+              <div class="qs-val" id="qs-time-elapsed">00:00</div>
+            </div>
+            <div class="qs-item">
+              <div class="qs-label">EVENTS TODAY</div>
+              <div class="qs-val" id="qs-events">0</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TIME SHIFT INDICATOR -->
+        <div class="glass-card time-shift-card">
+          <div class="card-header small-header">⏳ LAST TIME SHIFT</div>
+          <div class="time-shift-display" id="time-shift-display">
+            <span class="ts-arrow">—</span>
+            <span class="ts-label">No events yet</span>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
