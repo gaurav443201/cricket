@@ -957,7 +957,7 @@ function getAIPrediction() {
   .then(function(r) { return r.json(); })
   .then(function(data) {
     if (btn) { btn.textContent = '🤖 AI Predict'; btn.disabled = false; }
-    if (data.error) { alert('AI error: ' + data.error.message); return; }
+    if (data.error) { showCustomAlert('AI Error', data.error.message, '🤖'); return; }
     try {
       var text = data.choices[0].message.content.trim();
       var json = JSON.parse(text.replace(/```json|```/g, '').trim());
@@ -970,12 +970,12 @@ function getAIPrediction() {
         el.title = 'AI Predicted: ' + json.reasoning;
       }
     } catch(e) {
-      alert('Could not parse AI response: ' + data.choices[0].message.content);
+      showCustomAlert('Parse Error', 'Could not parse AI response: ' + (data.choices && data.choices[0] ? data.choices[0].message.content : 'empty'), '❌');
     }
   })
   .catch(function(e) {
     if (btn) { btn.textContent = '🤖 AI Predict'; btn.disabled = false; }
-    alert('Network error: ' + e.message);
+    showCustomAlert('Network Error', e.message, '🔌');
   });
 }
 
@@ -2124,7 +2124,7 @@ function saveMatch() {
     if (matches.length > 10) matches.pop();
     localStorage.setItem('cricket_saved_matches', JSON.stringify(matches));
     loadSavedMatches();
-    alert('Match saved!');
+    showCustomAlert('Match Saved', 'Match successfully pushed to local history.', '💾');
   } catch (e) { /* ignore */ }
 }
 
@@ -2159,15 +2159,50 @@ function deleteSavedMatch(id) {
 }
 
 function resetMatch() {
-  if (!confirm('Reset the match? All data will be cleared.')) return;
-  localStorage.removeItem('cricket_state');
-  // Add query param to force bypass cache
-  window.location.href = window.location.pathname + '?reset=true';
+  showCustomConfirm('Reset Match', 'Are you sure you want to completely clear all match data?', 'RESET', function() {
+    localStorage.removeItem('cricket_state');
+    window.location.href = window.location.pathname + '?reset=true';
+  });
 }
 
 // ============================================================
 // UTILITY
 // ============================================================
+function showCustomAlert(title, message, icon) {
+  var overlay = document.createElement('div');
+  overlay.className = 'custom-modal-overlay';
+  overlay.innerHTML =
+    '<div class="custom-modal">' +
+      '<div class="cm-icon">' + (icon || 'ℹ️') + '</div>' +
+      '<h3 class="cm-title">' + title + '</h3>' +
+      '<div class="cm-message">' + message + '</div>' +
+      '<div class="cm-btn-group">' +
+        '<button class="cm-btn cm-btn-ok" onclick="this.closest(\'.custom-modal-overlay\').remove()">OK</button>' +
+      '</div>' +
+    '</div>';
+  document.body.appendChild(overlay);
+}
+
+function showCustomConfirm(title, message, confirmText, onConfirm) {
+  var overlay = document.createElement('div');
+  overlay.className = 'custom-modal-overlay';
+  overlay.innerHTML =
+    '<div class="custom-modal">' +
+      '<div class="cm-icon">⚠️</div>' +
+      '<h3 class="cm-title">' + title + '</h3>' +
+      '<div class="cm-message">' + message + '</div>' +
+      '<div class="cm-btn-group">' +
+        '<button class="cm-btn cm-btn-cancel" onclick="this.closest(\'.custom-modal-overlay\').remove()">CANCEL</button>' +
+        '<button class="cm-btn cm-btn-confirm" id="cm-confirm-btn">' + confirmText + '</button>' +
+      '</div>' +
+    '</div>';
+  document.body.appendChild(overlay);
+  document.getElementById('cm-confirm-btn').onclick = function() {
+    overlay.remove();
+    if (onConfirm) onConfirm();
+  };
+}
+
 function setText(id, text) {
   const el = document.getElementById(id);
   if (el) el.textContent = text;
