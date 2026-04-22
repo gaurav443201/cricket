@@ -1222,17 +1222,37 @@ function computePredictedTime() {
   var bH12= bH % 12 === 0 ? 12 : bH % 12;
   var baseStr = bH12 + ':' + String(bM).padStart(2, '0') + ' ' + bPer;
 
+  var remainingMin = (projectedRemainingSeconds + projectedFutureDelay) / 60;
+
   return {
     timeStr, baseStr,
     netSeconds: Math.round(netPastSeconds + projectedFutureDelay),
     observedSecsPerBall: observedSecsPerBall.toFixed(1),
+    remainingMin: remainingMin
   };
 }
 
 function updateTimePrediction() {
-  const { timeStr, baseStr, netSeconds } = computePredictedTime();
+  const { timeStr, baseStr, netSeconds, remainingMin } = computePredictedTime();
   document.getElementById('predicted-time-big').textContent = timeStr;
   document.getElementById('base-time-display').textContent = baseStr;
+
+  // Transport Dispatch Layer Integration
+  const crr = STATE.legalBalls > 0 ? (STATE.runs / (STATE.legalBalls / 6)) : 0;
+  const ballsLeft = STATE.totalOvers * 6 - STATE.legalBalls;
+  const rrr = STATE.innings === 2 && ballsLeft > 0 ? ((STATE.target - STATE.runs) / (ballsLeft / 6)) : 0;
+  
+  const match_context = {
+    close_match: STATE.innings === 2 && Math.abs(crr - rrr) < 2.5 && STATE.wickets < 8,
+    many_wickets: STATE.wickets >= 7
+  };
+  
+  // Default probabilities. In the future this could track real ML outputs from AI insight.
+  let p10 = 0.5, p20 = 0.5, p30 = 0.5; 
+  if (remainingMin < 15) p10 = 0.8;
+  if (remainingMin < 30) p20 = 0.6;
+  
+  transport_decision(remainingMin, p10, p20, p30, match_context);
 
   const sign = netSeconds >= 0 ? '+' : '';
   const m = Math.floor(Math.abs(netSeconds) / 60);
@@ -1305,6 +1325,78 @@ function formatSec(sec) {
 }
 
 // ============================================================
+// SMART TRANSPORT DISPATCH LAYER
+// ============================================================
+function transport_decision(predicted_time_remaining, p10, p20, p30, match_context) {
+  let crowd = 'NORMAL';
+  if (predicted_time_remaining < 10) crowd = 'SURGE';
+  else if (predicted_time_remaining < 25) crowd = 'HIGH';
+
+  let alert_level = 'NORMAL';
+  if (p10 >= 0.7) alert_level = 'HIGH ALERT';
+  else if (p20 >= 0.4 && p20 < 0.7) alert_level = 'PREPARE';
+
+  let buses = 10;
+  let delay = 0;
+
+  if (crowd === 'SURGE') { buses += 20; delay = 5; }
+  else if (crowd === 'HIGH') { buses += 10; delay = 2; }
+
+  if (alert_level === 'HIGH ALERT') { buses += 15; delay += 5; }
+  else if (alert_level === 'PREPARE') { buses += 5; }
+
+  if (match_context.close_match) { buses += 10; }
+  if (match_context.many_wickets) { buses -= 5; }
+  if (buses < 0) buses = 0;
+
+  let action = 'Monitoring';
+  if (crowd === 'SURGE' || alert_level === 'HIGH ALERT') action = 'Immediate Dispatch';
+  else if (crowd === 'HIGH') action = 'Standby Dispatch';
+
+  let new_state = {
+    status: alert_level,
+    crowd: crowd,
+    buses: buses,
+    metro_delay: delay,
+    action: action
+  };
+
+  // Only dispatch if something changed
+  let curr = STATE.transport_state;
+  if (!curr || curr.status !== new_state.status || curr.crowd !== new_state.crowd || curr.buses !== new_state.buses || curr.action !== new_state.action) {
+    STATE.transport_state = new_state;
+    send_to_transport_system(new_state);
+    updateTransportUI();
+  }
+}
+
+function send_to_transport_system(transport_state) {
+  console.log("-----------------------------------------");
+  console.log("🚐 [TRANSPORT DISPATCH API CALLED]");
+  console.log("   Status: " + transport_state.status);
+  console.log("   Dispatching " + transport_state.buses + " buses");
+  console.log("   Updating metro schedule (+" + transport_state.metro_delay + " min delay)");
+  console.log("-----------------------------------------");
+}
+
+function updateTransportUI() {
+  const ts = STATE.transport_state;
+  if (!ts) return;
+  setText('trans-status', ts.status);
+  setText('trans-crowd', ts.crowd);
+  setText('trans-buses', ts.buses);
+  setText('trans-metro', '+' + ts.metro_delay + ' min');
+  setText('trans-action', ts.action);
+
+  const card = document.getElementById('transport-card');
+  if (card) {
+    card.className = 'pred-card';
+    if (ts.crowd === 'SURGE') card.classList.add('surge-active');
+    else if (ts.crowd === 'HIGH') card.classList.add('high-active');
+  }
+}
+
+// ============================================================
 // UPDATE ALL UI
 // ============================================================
 function updateAllUI() {
@@ -1313,6 +1405,7 @@ function updateAllUI() {
   updateOverSummary();
   updatePlayerUI();
   updateTimePrediction();
+  updateTransportUI();
   updateAnalytics();
   updateQuickStats();
 }

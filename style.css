@@ -1688,3 +1688,22 @@ body.light-theme .team-branding.csk-theme { background: linear-gradient(135deg, 
 body.light-theme .team-branding.rcb-theme { background: linear-gradient(135deg, #dc2626, #b91c1c); }
 body.light-theme .cm-icon { filter: drop-shadow(0 0 5px rgba(0,0,0,0.1)); }
 body.light-theme .custom-modal-overlay { background: rgba(255,255,255,0.85); backdrop-filter: blur(8px); }
+
+/* TRANSPORT HUD STYLES */
+.transport-card {
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+.transport-card.surge-active {
+  border-color: rgba(255, 77, 109, 0.6);
+  box-shadow: 0 0 25px rgba(255, 77, 109, 0.3);
+}
+.transport-card.surge-active .card-header {
+  color: var(--accent-red);
+}
+.transport-card.high-active {
+  border-color: rgba(245, 158, 11, 0.6);
+  box-shadow: 0 0 25px rgba(245, 158, 11, 0.2);
+}
+.transport-card.high-active .card-header {
+  color: var(--accent-yellow);
+}
