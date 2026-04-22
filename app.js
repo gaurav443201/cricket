@@ -142,6 +142,14 @@ const STATE = {
   // Selection modal flags
   pendingBatterSelection: false,
   pendingBowlerSelection: false,
+
+  // Real-time delay tracking
+  wicketTimestamp: null,
+  overCompleteTimestamp: null,
+
+  // OpenAI
+  openaiKey: '',
+  aiPrediction: null,
 };
 
 // ============================================================
@@ -569,8 +577,9 @@ function addEvent(type) {
       STATE.striker.balls++;
       STATE.partnershipBalls++;
       STATE.bowler.wickets++;
-  STATE.addedWickets += addedSec;
+      STATE.addedWickets += addedSec;
       recordDismissal(STATE.striker, type, STATE.bowler.name);
+      STATE.wicketTimestamp = Date.now();   // ⏱ start timing batter change
       resetStriker();
       ballDisplay = 'W'; ballClass = 'wicket';
       setTimeout(function() { checkAllOut(); }, 400);
@@ -584,8 +593,11 @@ function addEvent(type) {
       STATE.bowler.wickets++;
       STATE.addedWickets += addedSec;
       recordDismissal(STATE.striker, 'caught', STATE.bowler.name);
+      STATE.wicketTimestamp = Date.now();
       resetStriker();
-      ballDisplay = 'W'; ballClass = 'wicket'; break;
+      ballDisplay = 'W'; ballClass = 'wicket';
+      setTimeout(function() { checkAllOut(); }, 400);
+      break;
 
     case 'runout':
       STATE.wickets++;
@@ -594,8 +606,11 @@ function addEvent(type) {
       STATE.partnershipBalls++;
       STATE.addedWickets += addedSec;
       recordDismissal(STATE.striker, 'run out', '(run out)');
+      STATE.wicketTimestamp = Date.now();
       resetStriker();
-      ballDisplay = 'W'; ballClass = 'wicket'; break;
+      ballDisplay = 'W'; ballClass = 'wicket';
+      setTimeout(function() { checkAllOut(); }, 400);
+      break;
 
     case 'drs':
       STATE.drsCount++;
@@ -745,6 +760,18 @@ function showBatterModal() {
 }
 
 function selectBatter(name, initials) {
+  // ⏱ Measure real batter-change delay
+  var delaySec = 0;
+  if (STATE.wicketTimestamp) {
+    delaySec = Math.round((Date.now() - STATE.wicketTimestamp) / 1000);
+    STATE.wicketTimestamp = null;
+    // Clamp to realistic range (5s–120s)
+    delaySec = Math.max(5, Math.min(120, delaySec));
+    STATE.totalAddedSeconds += delaySec;
+    STATE.addedWickets      += delaySec;
+    showTimingToast('🏏 ' + name, delaySec, 'Batter change');
+  }
+
   STATE.striker = { name: name, initials: initials, runs: 0, balls: 0, fours: 0, sixes: 0 };
   STATE.partnershipRuns  = 0;
   STATE.partnershipBalls = 0;
@@ -753,6 +780,7 @@ function selectBatter(name, initials) {
   if (inp) inp.value = name;
   updatePlayerUI();
   updateQuickStats();
+  updateTimePrediction();
 }
 
 // ============================================================
@@ -809,6 +837,16 @@ function selectBowler(index) {
   var chosen = roster[index];
   if (!chosen) return;
 
+  // ⏱ Measure real bowler-change delay
+  if (STATE.overCompleteTimestamp) {
+    var delaySec = Math.round((Date.now() - STATE.overCompleteTimestamp) / 1000);
+    STATE.overCompleteTimestamp = null;
+    delaySec = Math.max(10, Math.min(180, delaySec));
+    STATE.totalAddedSeconds += delaySec;
+    STATE.addedOvers        += delaySec;
+    showTimingToast('🎳 ' + chosen.name, delaySec, 'Bowler change');
+  }
+
   var existingStats = STATE.bowlerList.find(function(b) { return b.name === chosen.name; });
   STATE.bowler = {
     name:       chosen.name,
@@ -825,6 +863,7 @@ function selectBowler(index) {
   if (inp) inp.value = chosen.name;
   updatePlayerUI();
   updateScorecardUI();
+  updateTimePrediction();
 }
 
 function getPlayerRole(name) {
@@ -835,6 +874,168 @@ function getPlayerRole(name) {
   if (ars.indexOf(name)  >= 0) return 'All-Rounder';
   if (bwls.indexOf(name) >= 0) return 'Bowler';
   return 'Batsman';
+}
+
+// ============================================================
+// TIMING TOAST  — shows how long player change took
+// ============================================================
+function showTimingToast(player, seconds, label) {
+  var color   = seconds <= 30 ? '#00d68f' : seconds <= 60 ? '#f59e0b' : '#ff4d6d';
+  var icon    = seconds <= 30 ? '⚡' : seconds <= 60 ? '⏱' : '🐢';
+  var el      = document.createElement('div');
+  el.className = 'timing-toast';
+  el.innerHTML =
+    '<div class="tt-row">' +
+      '<span class="tt-icon">' + icon + '</span>' +
+      '<span class="tt-label">' + label + '</span>' +
+      '<span class="tt-sec" style="color:' + color + ';">+' + seconds + 's</span>' +
+    '</div>' +
+    '<div class="tt-player">' + player + '</div>' +
+    '<div class="tt-bar-wrap"><div class="tt-bar" style="background:' + color + ';"></div></div>';
+  document.body.appendChild(el);
+  setTimeout(function() { el.classList.add('tt-show'); }, 50);
+  setTimeout(function() {
+    el.classList.remove('tt-show');
+    setTimeout(function() { el.remove(); }, 400);
+  }, 5000);
+}
+
+// ============================================================
+// OPENAI API INTEGRATION
+// ============================================================
+function loadOpenAIKey() {
+  var saved = localStorage.getItem('cricket_openai_key');
+  if (saved) {
+    STATE.openaiKey = saved;
+    var inp = document.getElementById('openai-key-input');
+    if (inp) inp.value = '●'.repeat(Math.min(saved.length, 20));
+  }
+}
+
+function setOpenAIKey() {
+  var inp = document.getElementById('openai-key-input');
+  if (!inp || !inp.value.trim() || inp.value.startsWith('●')) return;
+  STATE.openaiKey = inp.value.trim();
+  localStorage.setItem('cricket_openai_key', STATE.openaiKey);
+  inp.value = '●'.repeat(Math.min(STATE.openaiKey.length, 20));
+  alert('✅ API Key saved securely in your browser!');
+}
+
+function buildMatchPrompt() {
+  var crr    = STATE.legalBalls > 0 ? (STATE.runs / (STATE.legalBalls / 6)).toFixed(2) : '0.00';
+  var remain = (STATE.totalOvers * 6) - STATE.legalBalls;
+  var target = STATE.target > 0 ? 'Target: ' + STATE.target + ', RRR: ' + (remain > 0 ? ((STATE.target - STATE.runs) / (remain / 6)).toFixed(2) : 'N/A') : 'First innings';
+  var netSec = STATE.totalAddedSeconds - STATE.totalReducedSeconds;
+
+  return 'You are an expert T20 cricket match-time analyst. Given the LIVE match data below, ' +
+    'predict the exact time the match will end, accounting for realistic event delays.\n\n' +
+    'MATCH: ' + STATE.teamA + ' vs ' + STATE.teamB + ' (T20, ' + STATE.totalOvers + ' overs)\n' +
+    'INNINGS: ' + (STATE.innings === 1 ? '1st' : '2nd') + '\n' +
+    'SCORE: ' + STATE.runs + '/' + STATE.wickets + ' in ' + getOversDisplay() + ' overs\n' +
+    'CRR: ' + crr + ' | ' + target + '\n' +
+    'STRIKER: ' + STATE.striker.name + ' — ' + STATE.striker.runs + '* off ' + STATE.striker.balls + '\n' +
+    'BOWLER: ' + STATE.bowler.name + ' — ' + Math.floor(STATE.bowler.legalBalls/6) + '.' + (STATE.bowler.legalBalls%6) + ' ov, ' + STATE.bowler.runs + 'r, ' + STATE.bowler.wickets + 'w\n' +
+    'EXTRAS: ' + STATE.extras + ' (WD:' + STATE.wides + ' NB:' + STATE.noBalls + ')\n' +
+    'BOUNDARIES: ' + STATE.fours + ' fours, ' + STATE.sixes + ' sixes\n' +
+    'DRS REVIEWS USED: ' + STATE.drsCount + '\n' +
+    'TIME DELAYS ACCUMULATED: +' + STATE.totalAddedSeconds + 's added, -' + STATE.totalReducedSeconds + 's reduced (net: ' + netSec + 's)\n' +
+    'MATCH START: ' + formatTimeFromMinutes(STATE.baseTimeMinutes) + '\n' +
+    'DEW FACTOR: ' + (STATE.isDew ? 'YES' : 'NO') + '\n\n' +
+    'Using T20 match pacing data (avg 25s per legal delivery), project event frequency ' +
+    'for remaining ' + remain + ' balls and return ONLY this JSON:\n' +
+    '{"endTime":"HH:MM AM/PM","confidence":85,"delayBreakdown":{"wides":30,"wickets":60,"overChanges":90,"drs":0},' +
+    '"reasoning":"2-sentence explanation","pace":"X.X seconds per ball"}';
+}
+
+function formatTimeFromMinutes(totalMin) {
+  var h = Math.floor(totalMin / 60) % 24;
+  var m = totalMin % 60;
+  var p = h >= 12 ? 'PM' : 'AM';
+  var h12 = h % 12 === 0 ? 12 : h % 12;
+  return h12 + ':' + String(m).padStart(2,'0') + ' ' + p;
+}
+
+function getAIPrediction() {
+  var key = STATE.openaiKey || localStorage.getItem('cricket_openai_key');
+  if (!key) {
+    alert('⚠️ Set your OpenAI API key in Settings first.');
+    return;
+  }
+
+  var btn = document.getElementById('ai-predict-btn');
+  if (btn) { btn.textContent = '🤖 Thinking…'; btn.disabled = true; }
+
+  var prompt = buildMatchPrompt();
+
+  fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + key,
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 300,
+      temperature: 0.2,
+    }),
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (btn) { btn.textContent = '🤖 AI Predict'; btn.disabled = false; }
+    if (data.error) { alert('OpenAI error: ' + data.error.message); return; }
+    try {
+      var text = data.choices[0].message.content.trim();
+      var json = JSON.parse(text.replace(/```json|```/g, '').trim());
+      showAIInsightPanel(json);
+      STATE.aiPrediction = json;
+      // Update the big predicted time display
+      var el = document.getElementById('predicted-time-big');
+      if (el) {
+        el.textContent = json.endTime;
+        el.style.color = '#a78bfa'; // purple = AI prediction
+        el.title = 'AI Predicted: ' + json.reasoning;
+      }
+    } catch(e) {
+      alert('Could not parse AI response. Raw: ' + data.choices[0].message.content);
+    }
+  })
+  .catch(function(e) {
+    if (btn) { btn.textContent = '🤖 AI Predict'; btn.disabled = false; }
+    alert('Network error: ' + e.message);
+  });
+}
+
+function showAIInsightPanel(json) {
+  var existing = document.getElementById('ai-insight-panel');
+  if (existing) existing.remove();
+
+  var conf    = json.confidence || 0;
+  var confClr = conf >= 80 ? '#00d68f' : conf >= 60 ? '#f59e0b' : '#ff4d6d';
+  var bd      = json.delayBreakdown || {};
+
+  var html = '<div id="ai-insight-panel" class="ai-panel">' +
+    '<div class="ai-panel-header">' +
+    '<span class="ai-icon">🤖</span>' +
+    '<span>AI MATCH PREDICTION — GPT-4o-mini</span>' +
+    '<button onclick="document.getElementById(\'ai-insight-panel\').remove()" class="ai-close">✕</button>' +
+    '</div>' +
+    '<div class="ai-end-time">' + (json.endTime || '—') + '</div>' +
+    '<div class="ai-conf-row">' +
+    '<span class="ai-conf-label">CONFIDENCE</span>' +
+    '<span class="ai-conf-val" style="color:' + confClr + ';">' + conf + '%</span>' +
+    '</div>' +
+    '<div class="ai-breakdown">' +
+    '<div class="ai-bd-row"><span>Wides delay</span><span>+' + (bd.wides||0) + 's</span></div>' +
+    '<div class="ai-bd-row"><span>Wickets delay</span><span>+' + (bd.wickets||0) + 's</span></div>' +
+    '<div class="ai-bd-row"><span>Over changes</span><span>+' + (bd.overChanges||0) + 's</span></div>' +
+    '<div class="ai-bd-row"><span>DRS delay</span><span>+' + (bd.drs||0) + 's</span></div>' +
+    '</div>' +
+    '<div class="ai-reasoning">' + (json.reasoning || '') + '</div>' +
+    '<div class="ai-pace">⚡ Pace: ' + (json.pace || '—') + ' per ball</div>' +
+    '</div>';
+
+  document.getElementById('time-prediction-card').insertAdjacentHTML('afterend', html);
 }
 
 // ============================================================
@@ -895,6 +1096,9 @@ function completeOver() {
   // Add bowler to list
   updateBowlerList();
 
+  // Record timestamp for bowler selection delay tracking
+  STATE.overCompleteTimestamp = Date.now();
+
   // Show bowler selector modal after a short delay
   setTimeout(() => showBowlerModal(), 350);
 }
@@ -952,28 +1156,82 @@ function resetStriker() {
 }
 
 // ============================================================
-// TIME PREDICTION ENGINE
+// TIME PREDICTION ENGINE  —  Physics-based multi-factor model
 // ============================================================
 function computePredictedTime() {
-  // Base end time = match start + 210 minutes (expected T20 duration)
-  const baseEndMin = STATE.baseTimeMinutes + 210;
-  const netSeconds = STATE.totalAddedSeconds - STATE.totalReducedSeconds;
-  const predictedMin = baseEndMin + netSeconds / 60;
+  var totalBallsInMatch = STATE.totalOvers * 6;          // 120 for T20
+  var ballsPlayed       = STATE.legalBalls;              // legal deliveries so far
+  var ballsRemaining    = totalBallsInMatch - ballsPlayed;
 
-  const hours = Math.floor(predictedMin / 60) % 24;
-  const mins = Math.round(predictedMin % 60);
-  const period = hours >= 12 ? 'PM' : 'AM';
-  const h12 = hours % 12 === 0 ? 12 : hours % 12;
-  const timeStr = `${h12}:${String(mins).padStart(2, '0')} ${period}`;
+  // ── 1. ACTUAL SECONDS ELAPSED PER LEGAL BALL ─────────────────
+  // Historical T20 average: ~25 seconds per legal delivery
+  // We observe actual pace from accumulated time adjustments
+  var baseSecsPerBall   = 25;    // industry benchmark
+  var observedAdditions = STATE.totalAddedSeconds - STATE.totalReducedSeconds;
+  // Adjust pace estimate if we have enough data
+  var observedSecsPerBall = baseSecsPerBall;
+  if (ballsPlayed > 12) {
+    // Total time elapsed ≈ ballsPlayed * baseSecsPerBall + net adjustments
+    var estimatedElapsed = (ballsPlayed * baseSecsPerBall) + observedAdditions;
+    observedSecsPerBall  = estimatedElapsed / ballsPlayed;
+    // Clamp to sane range [18, 40] seconds/ball
+    observedSecsPerBall  = Math.max(18, Math.min(40, observedSecsPerBall));
+  }
 
-  // Base time display
-  const bH = Math.floor(baseEndMin / 60) % 24;
-  const bM = baseEndMin % 60;
-  const bPeriod = bH >= 12 ? 'PM' : 'AM';
-  const bH12 = bH % 12 === 0 ? 12 : bH % 12;
-  const baseStr = `${bH12}:${String(bM).padStart(2, '0')} ${bPeriod}`;
+  // ── 2. PROJECTED REMAINING TIME FOR BALLS NOT YET BOWLED ───────
+  var projectedRemainingSeconds = ballsRemaining * observedSecsPerBall;
 
-  return { timeStr, baseStr, netSeconds };
+  // ── 3. PROJECTED FUTURE EVENT DELAYS ────────────────────
+  // Estimate how many wides / wickets / overs remain based on current rates
+  var oversRemaining    = Math.ceil(ballsRemaining / 6);
+  var totalBalls_done   = STATE.totalBalls || 1;
+  var wideRate          = STATE.wides   / totalBalls_done;   // wides per delivery
+  var wicketRate        = STATE.wickets / Math.max(1, ballsPlayed); // wickets per ball
+
+  var projectedWides   = wideRate   * ballsRemaining;
+  var projectedWickets = Math.min(10 - STATE.wickets, wicketRate * ballsRemaining);
+
+  var futureWideDelay    = projectedWides   * TIME_COST.wide;
+  var futureWicketDelay  = projectedWickets * TIME_COST.caught; // caught avg
+  var futureOverDelay    = oversRemaining   * TIME_COST['over-complete'];
+  var futureDRSDelay     = (STATE.drsCount > 0 ? 1 : 0) * TIME_COST.drs; // ~1 more DRS expected
+
+  var projectedFutureDelay = futureWideDelay + futureWicketDelay + futureOverDelay + futureDRSDelay;
+
+  // ── 4. COMBINE: already-happened net + projected future ───────
+  var netPastSeconds   = STATE.totalAddedSeconds - STATE.totalReducedSeconds;
+  var matchStartMin    = STATE.baseTimeMinutes;
+  // Total time from start to end = balls already played + remaining + adjustments
+  var totalMatchSeconds = (ballsPlayed * observedSecsPerBall)
+                        + projectedRemainingSeconds
+                        + projectedFutureDelay
+                        + Math.max(0, netPastSeconds);
+
+  var predictedMin     = matchStartMin + (totalMatchSeconds / 60);
+
+  // ── 5. FORMAT TIMES ────────────────────────────────
+  var hours   = Math.floor(predictedMin / 60) % 24;
+  var mins    = Math.round(predictedMin % 60);
+  if (mins >= 60) { hours = (hours + 1) % 24; mins -= 60; }
+  var period  = hours >= 12 ? 'PM' : 'AM';
+  var h12     = hours % 12 === 0 ? 12 : hours % 12;
+  var timeStr = h12 + ':' + String(mins).padStart(2, '0') + ' ' + period;
+
+  // Base end time (no delays, pure ball-rate)
+  var baseEndSec = (totalBallsInMatch * baseSecsPerBall);
+  var baseEndMin = matchStartMin + (baseEndSec / 60);
+  var bH  = Math.floor(baseEndMin / 60) % 24;
+  var bM  = Math.round(baseEndMin % 60);
+  if (bM >= 60) { bH = (bH + 1) % 24; bM -= 60; }
+  var bPer= bH >= 12 ? 'PM' : 'AM';
+  var bH12= bH % 12 === 0 ? 12 : bH % 12;
+  var baseStr = bH12 + ':' + String(bM).padStart(2, '0') + ' ' + bPer;
+
+  return {
+    timeStr, baseStr,
+    netSeconds: Math.round(netPastSeconds + projectedFutureDelay),
+    observedSecsPerBall: observedSecsPerBall.toFixed(1),
+  };
 }
 
 function updateTimePrediction() {
@@ -1951,3 +2209,6 @@ function setStyleProp(id, prop, val) {
   const el = document.getElementById(id);
   if (el) el.style[prop] = val;
 }
+
+// Restore OpenAI key on page load (debounced so DOM is ready)
+setTimeout(loadOpenAIKey, 500);
