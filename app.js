@@ -150,6 +150,10 @@ const STATE = {
   // OpenAI
   openaiKey: '',
   aiPrediction: null,
+
+  // Transport pre-dispatch (fires once when ≤15 min remaining)
+  preDispatchSent: false,
+  matchEnded: false,
 };
 
 // ============================================================
@@ -587,6 +591,17 @@ function addEvent(type) {
 
   // Update last time shift display
   updateTimeShiftDisplay(addedSec, reducedSec, type);
+
+  // ── 2nd innings: check if chasing team reached target (win mid-over) ──────
+  if (STATE.innings === 2 && STATE.target > 0 && STATE.runs >= STATE.target && !STATE.matchEnded) {
+    STATE.matchEnded = true;
+    setTimeout(function() {
+      // Close any stray bowler modal
+      var bm = document.getElementById('bowler-modal');
+      if (bm) bm.classList.add('sel-hidden');
+      showMatchSummaryModal();
+    }, 500);
+  }
 }
 
 // ============================================================
@@ -661,9 +676,21 @@ function selectBatter(name, initials) {
 // BOWLER SELECTION MODAL
 // ============================================================
 function showBowlerModal() {
+  // Don't show bowler selector if match has ended
+  if (STATE.matchEnded) return;
+
   var nextOverNum = STATE.oversCompleted + 1;
   var overLabel   = document.getElementById('bowler-modal-over');
   if (overLabel) overLabel.textContent = nextOverNum;
+
+  // Fix subtitle: show correct bowling team name
+  var bowlingTeam = STATE.innings === 1 ? STATE.teamB : STATE.teamA;
+  var teamSpan = document.getElementById('bowler-team-name');
+  if (teamSpan) teamSpan.textContent = bowlingTeam;
+
+  // Fix avatar colour: CSK (gold) in 2nd innings, RCB (red) in 1st
+  var avatarClass = STATE.innings === 1 ? 'rcb-av' : 'csk-av';
+  // (applied inline per player below)
 
   var roster = STATE.innings === 1 ? RCB_BOWLING_ORDER :
     CSK_BATTING_ORDER.filter(function(b) {
@@ -690,7 +717,7 @@ function showBowlerModal() {
     var arrow    = (isMaxed || isCurrent) ? '&#10005;' : '&#8594;';
     return [
       '<button class="sel-player-btn ' + cls + '" ' + dis + ' onclick="selectBowler(' + i + ')">',
-      '  <div class="sel-avatar rcb-av">' + b.initials + '</div>',
+      '  <div class="sel-avatar ' + avatarClass + '">' + b.initials + '</div>',
       '  <div class="sel-player-info">',
       '    <div class="sel-player-name">' + b.name + ' ' + badge + '</div>',
       '    <div class="sel-player-meta">' + oversStr + ' ov &nbsp;&#183;&nbsp; ' + stats.runs + ' runs &nbsp;&#183;&nbsp; ' + stats.wickets + ' wkts &nbsp;&#183;&nbsp; Econ ' + econ + '</div>',
@@ -1117,6 +1144,13 @@ function updateTimePrediction() {
   if (remainingMin < 60) p20 = 0.6;
   
   transport_decision(remainingMin, p10, p20, p30, match_context);
+
+  // ── AUTO 15-MIN PRE-DISPATCH ─────────────────────────────────────────────
+  // Fire once when estimated remaining time drops to ≤15 min
+  if (remainingMin <= 15 && remainingMin > 0 && !STATE.preDispatchSent && STATE.legalBalls > 12 && !STATE.matchEnded) {
+    STATE.preDispatchSent = true;
+    showPreDispatchAlert(Math.ceil(remainingMin));
+  }
 
   const sign = netSeconds >= 0 ? '+' : '';
   const m = Math.floor(Math.abs(netSeconds) / 60);
@@ -1953,6 +1987,8 @@ function startSecondInnings() {
   STATE.bowlerList = [];
   STATE.overRunRates = [];
   STATE.overRunsPerOver = [];
+  STATE.preDispatchSent = false;  // reset so 15-min alert fires again in 2nd innings
+  STATE.matchEnded = false;
   cskBatterIndex = 0;   // reset batter index for RCB
   rcbBowlerIndex = 0;   // reset bowler index for CSK
 
@@ -2071,8 +2107,66 @@ function showMatchSummaryModal() {
     '</div></div>';
 
   document.body.insertAdjacentHTML('beforeend', html);
+
+  // Mark match as ended and trigger final full transport dispatch
+  STATE.matchEnded = true;
+  triggerFinalTransportDispatch();
 }
 
+// ============================================================
+// FINAL + 15-MIN PRE-DISPATCH TRANSPORT
+// ============================================================
+function triggerFinalTransportDispatch() {
+  var buses = (STATE.transport_state ? STATE.transport_state.buses : 30) + 20;
+  var finalState = {
+    status: 'MATCH ENDED — FULL DISPATCH',
+    crowd: 'SURGE',
+    buses: buses,
+    metro_delay: 10,
+    action: 'Immediate Full Dispatch'
+  };
+  STATE.transport_state = finalState;
+  send_to_transport_system(finalState);
+  updateTransportUI();
+  console.log('🏟 [MATCH ENDED] Full transport dispatch triggered. ' + buses + ' buses + metro +10 min.');
+}
+
+function showPreDispatchAlert(minsRemaining) {
+  // Avoid duplicates
+  if (document.getElementById('pre-dispatch-alert')) return;
+
+  var buses = (STATE.transport_state ? STATE.transport_state.buses : 25);
+  var el = document.createElement('div');
+  el.id = 'pre-dispatch-alert';
+  el.className = 'pda-toast';
+  el.innerHTML =
+    '<div class="pda-header">' +
+      '<span class="pda-siren">🚨</span>' +
+      '<span class="pda-title">AUTO PRE-DISPATCH — ' + minsRemaining + ' MIN TO MATCH END</span>' +
+      '<button class="pda-close" onclick="document.getElementById(\'pre-dispatch-alert\').remove()">✕</button>' +
+    '</div>' +
+    '<div class="pda-body">' +
+      '<div class="pda-stat"><span>🚍</span><strong>' + buses + ' Buses</strong><small>Dispatched to stadium exits</small></div>' +
+      '<div class="pda-stat"><span>🚇</span><strong>Metro +5 min</strong><small>Frequency increased</small></div>' +
+      '<div class="pda-stat"><span>⏱</span><strong>~' + minsRemaining + ' min</strong><small>Est. time remaining</small></div>' +
+    '</div>' +
+    '<div class="pda-footer">Transport coordination system pre-dispatched automatically based on live match data pipeline.</div>';
+
+  document.body.appendChild(el);
+  setTimeout(function() { el.classList.add('pda-show'); }, 50);
+
+  // Log to transport system
+  send_to_transport_system({
+    status: '15-MIN PRE-DISPATCH',
+    crowd: 'HIGH',
+    buses: buses,
+    metro_delay: 5,
+    action: '15-Min Pre-Dispatch Active'
+  });
+
+  // Update transport card
+  updateTransportUI();
+}
 
 // ============================================================
 // UNDO

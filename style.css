@@ -1874,3 +1874,78 @@ body.light-theme .msm-dispatch {
   background: rgba(245,158,11,0.06);
   border-color: rgba(245,158,11,0.25);
 }
+
+/* ============================================================
+   PRE-DISPATCH TOAST
+   ============================================================ */
+.pda-toast {
+  position: fixed;
+  bottom: -150px;
+  right: 20px;
+  width: 380px;
+  background: var(--bg-card);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 77, 109, 0.4);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5), 0 0 20px rgba(255, 77, 109, 0.2);
+  z-index: 9999;
+  overflow: hidden;
+  transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.pda-toast.pda-show {
+  transform: translateY(-170px);
+}
+.pda-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 15px;
+  background: rgba(255, 77, 109, 0.15);
+  border-bottom: 1px solid rgba(255, 77, 109, 0.2);
+}
+.pda-siren { font-size: 1.2rem; animation: pulseSiren 1s infinite; }
+@keyframes pulseSiren { 
+  0%, 100% { opacity: 1; transform: scale(1); } 
+  50% { opacity: 0.6; transform: scale(1.1); } 
+}
+.pda-title {
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: var(--accent-red);
+  letter-spacing: 1px;
+  flex: 1;
+}
+.pda-close {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 1rem;
+}
+.pda-close:hover { color: var(--text-primary); }
+.pda-body {
+  display: flex;
+  padding: 15px;
+  gap: 15px;
+  border-bottom: 1px solid var(--border-glass);
+}
+.pda-stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 4px;
+}
+.pda-stat span { font-size: 1.5rem; }
+.pda-stat strong { font-family: 'Orbitron', monospace; font-size: 0.9rem; color: var(--text-primary); }
+.pda-stat small { font-size: 0.6rem; color: var(--text-muted); }
+.pda-footer {
+  padding: 10px 15px;
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  background: rgba(0,0,0,0.2);
+  line-height: 1.3;
+}
