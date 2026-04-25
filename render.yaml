@@ -1,0 +1,16 @@
+# render.yaml — Render Web Service configuration
+# https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: cricket-time-predictor
+    runtime: node
+    plan: free           # change to "starter" etc. for paid tier
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: OPENAI_API_KEY
+        sync: false      # set manually via Render dashboard → Environment tab

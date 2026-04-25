@@ -1707,3 +1707,170 @@ body.light-theme .custom-modal-overlay { background: rgba(255,255,255,0.85); bac
 .transport-card.high-active .card-header {
   color: var(--accent-yellow);
 }
+
+/* ============================================================
+   MATCH SUMMARY MODAL
+   ============================================================ */
+.msm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  animation: selFadeIn 0.35s ease;
+}
+.msm-dialog {
+  background: linear-gradient(145deg, #0a1628 0%, #0f1e35 60%, #07111f 100%);
+  border: 1px solid rgba(0,214,143,0.3);
+  border-radius: 20px;
+  padding: 2rem;
+  width: min(560px, 96vw);
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 30px 80px rgba(0,0,0,0.7), 0 0 60px rgba(0,214,143,0.1);
+  animation: slideUpModal 0.4s cubic-bezier(0.16,1,0.3,1);
+}
+@keyframes slideUpModal {
+  from { transform: translateY(40px) scale(0.95); opacity: 0; }
+  to   { transform: translateY(0)    scale(1);    opacity: 1; }
+}
+.msm-header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+.msm-trophy {
+  font-size: 3rem;
+  animation: float 2s ease-in-out infinite;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+.msm-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 1.6rem;
+  font-weight: 900;
+  color: var(--accent-yellow);
+  letter-spacing: 3px;
+  text-shadow: 0 0 30px rgba(245,158,11,0.6);
+}
+.msm-subtitle {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  letter-spacing: 2px;
+  margin-top: 4px;
+}
+.msm-result {
+  text-align: center;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 1.3rem;
+  font-weight: 700;
+  padding: 0.8rem 1.2rem;
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border-glass);
+  color: var(--text-primary);
+  letter-spacing: 1px;
+}
+.msm-result.msm-win {
+  background: rgba(0,214,143,0.12);
+  border-color: rgba(0,214,143,0.4);
+  color: var(--accent-green);
+  text-shadow: 0 0 20px rgba(0,214,143,0.5);
+}
+.msm-result.msm-tie {
+  background: rgba(245,158,11,0.12);
+  border-color: rgba(245,158,11,0.4);
+  color: var(--accent-yellow);
+  text-shadow: 0 0 20px rgba(245,158,11,0.5);
+}
+.msm-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+.msm-stat {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border-glass);
+  border-radius: 10px;
+  padding: 0.6rem;
+  text-align: center;
+}
+.msm-stat-label {
+  font-size: 0.55rem;
+  color: var(--text-muted);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.msm-stat-val {
+  font-family: 'Orbitron', monospace;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.msm-dispatch {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  background: rgba(245,158,11,0.08);
+  border: 1px solid rgba(245,158,11,0.2);
+  border-radius: 10px;
+  padding: 0.7rem 1rem;
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  margin-bottom: 1.2rem;
+  line-height: 1.5;
+}
+.msm-dispatch strong { color: var(--accent-yellow); }
+.msm-dispatch-icon { font-size: 1.2rem; flex-shrink: 0; margin-top: 1px; }
+.msm-actions {
+  display: flex;
+  gap: 0.8rem;
+}
+.msm-save-btn, .msm-reset-btn {
+  flex: 1;
+  padding: 0.8rem;
+  border-radius: 10px;
+  border: none;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.msm-save-btn {
+  background: linear-gradient(135deg, rgba(0,214,143,0.2), rgba(0,214,143,0.1));
+  border: 1px solid rgba(0,214,143,0.4);
+  color: var(--accent-green);
+}
+.msm-save-btn:hover {
+  background: linear-gradient(135deg, rgba(0,214,143,0.35), rgba(0,214,143,0.2));
+  box-shadow: 0 0 20px rgba(0,214,143,0.25);
+  transform: translateY(-1px);
+}
+.msm-reset-btn {
+  background: linear-gradient(135deg, rgba(59,130,246,0.2), rgba(59,130,246,0.1));
+  border: 1px solid rgba(59,130,246,0.4);
+  color: #93c5fd;
+}
+.msm-reset-btn:hover {
+  background: linear-gradient(135deg, rgba(59,130,246,0.35), rgba(59,130,246,0.2));
+  box-shadow: 0 0 20px rgba(59,130,246,0.2);
+  transform: translateY(-1px);
+}
+/* Light mode adjustments */
+body.light-theme .msm-dialog {
+  background: var(--bg-secondary);
+  border: 1px solid rgba(0,0,0,0.1);
+  box-shadow: 0 30px 80px rgba(0,0,0,0.15);
+}
+body.light-theme .msm-dispatch {
+  background: rgba(245,158,11,0.06);
+  border-color: rgba(245,158,11,0.25);
+}

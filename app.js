@@ -604,6 +604,12 @@ function showBatterModal() {
   const listEl = document.getElementById('batter-list');
   if (!listEl) return;
 
+  // IMPORTANT FIX: Auto-assign if exactly 1 batter left
+  if (remaining.length === 1) {
+    selectBatter(remaining[0].name, remaining[0].initials);
+    return;
+  }
+
   if (remaining.length === 0) {
     listEl.innerHTML = '<div class="sel-empty">All batters dismissed! Match over.</div>';
   } else {
@@ -945,7 +951,7 @@ function completeOver() {
     if (STATE.innings === 1) {
       setTimeout(() => addEvent('innings-break'), 100);
     } else {
-      setTimeout(() => alert('Match Complete!'), 400);
+      setTimeout(() => showMatchSummaryModal(), 400);
     }
   } else {
     setTimeout(() => showBowlerModal(), 350);
@@ -1000,8 +1006,12 @@ function recordDismissal(batter, mode, bowlerName) {
 function resetStriker() {
   // Temporary placeholder shown while judge picks batter
   STATE.striker = { name: '— Incoming —', initials: '?', runs: 0, balls: 0, fours: 0, sixes: 0 };
-  // Show batter picker modal
-  setTimeout(() => showBatterModal(), 350);
+  
+  // Only show batter picker modal if there are actually wickets remaining to fall
+  if (STATE.wickets < 10) {
+    if (STATE.batterTimeout) clearTimeout(STATE.batterTimeout);
+    STATE.batterTimeout = setTimeout(() => showBatterModal(), 350);
+  }
 }
 
 // ============================================================
@@ -1246,7 +1256,7 @@ function updateTransportUI() {
 
   const card = document.getElementById('transport-card');
   if (card) {
-    card.className = 'pred-card';
+    card.className = 'glass-card transport-card';
     if (ts.crowd === 'SURGE') card.classList.add('surge-active');
     else if (ts.crowd === 'HIGH') card.classList.add('high-active');
   }
@@ -1984,8 +1994,83 @@ function startSecondInnings() {
 
 // ── Kept for backward-compat (INNINGS BREAK button) ──────────
 function showInningsBreak() {
-  // Manual innings break just calls checkAllOut flow
+  // Manual innings break — show all-out modal for innings transition
   showAllOutModal();
+}
+
+// ============================================================
+// MATCH SUMMARY MODAL  (shown at end of 2nd innings)
+// ============================================================
+function showMatchSummaryModal() {
+  var result, resultClass;
+  if (STATE.innings === 2) {
+    var runsNeeded = STATE.target - STATE.runs;
+    if (STATE.runs >= STATE.target) {
+      // Chasing team won
+      result = STATE.teamB + ' WON by ' + (10 - STATE.wickets) + ' wickets! 🏆';
+      resultClass = 'msm-win';
+    } else if (STATE.wickets >= 10 || STATE.oversCompleted >= STATE.totalOvers) {
+      var runsDiff = STATE.target - STATE.runs - 1;
+      if (runsDiff === 0) {
+        result = 'MATCH TIED! 🤝';
+        resultClass = 'msm-tie';
+      } else {
+        result = STATE.teamA + ' WON by ' + runsDiff + ' run' + (runsDiff > 1 ? 's' : '') + '! 🏆';
+        resultClass = 'msm-win';
+      }
+    } else {
+      result = 'Match Result Pending';
+      resultClass = '';
+    }
+  } else {
+    result = '1st Innings Complete';
+    resultClass = '';
+  }
+
+  var crr = STATE.legalBalls > 0 ? (STATE.runs / (STATE.legalBalls / 6)).toFixed(2) : '0.00';
+
+  // Transport dispatch notification
+  var dispatchHtml = '<div class="msm-dispatch">' +
+    '<span class="msm-dispatch-icon">🚍</span>' +
+    '<span>Transport dispatch initiated — <strong>' +
+    (STATE.transport_state ? STATE.transport_state.buses : 10) +
+    ' buses</strong> and metro schedule updated for crowd exit.</span>' +
+    '</div>';
+
+  var html = '<div class="msm-overlay" id="match-summary-modal">' +
+    '<div class="msm-dialog">' +
+
+    // Header
+    '<div class="msm-header">' +
+    '<div class="msm-trophy">🏆</div>' +
+    '<h2 class="msm-title">MATCH COMPLETE</h2>' +
+    '<p class="msm-subtitle">' + STATE.teamA + ' vs ' + STATE.teamB + ' · IPL 2025</p>' +
+    '</div>' +
+
+    // Result banner
+    '<div class="msm-result ' + resultClass + '">' + result + '</div>' +
+
+    // Stats grid
+    '<div class="msm-stats">' +
+    '<div class="msm-stat"><div class="msm-stat-label">FINAL SCORE</div><div class="msm-stat-val neon-green">' + STATE.runs + '/' + STATE.wickets + '</div></div>' +
+    '<div class="msm-stat"><div class="msm-stat-label">OVERS</div><div class="msm-stat-val">' + getOversDisplay() + '</div></div>' +
+    '<div class="msm-stat"><div class="msm-stat-label">RUN RATE</div><div class="msm-stat-val">' + crr + '</div></div>' +
+    '<div class="msm-stat"><div class="msm-stat-label">TARGET</div><div class="msm-stat-val neon-yellow">' + STATE.target + '</div></div>' +
+    '<div class="msm-stat"><div class="msm-stat-label">4s / 6s</div><div class="msm-stat-val">' + STATE.fours + ' / ' + STATE.sixes + '</div></div>' +
+    '<div class="msm-stat"><div class="msm-stat-label">EXTRAS</div><div class="msm-stat-val">' + STATE.extras + '</div></div>' +
+    '</div>' +
+
+    dispatchHtml +
+
+    // Action buttons
+    '<div class="msm-actions">' +
+    '<button class="msm-save-btn" onclick="saveMatch(); document.getElementById(\'match-summary-modal\').remove();">💾 SAVE MATCH</button>' +
+    '<button class="msm-reset-btn" onclick="document.getElementById(\'match-summary-modal\').remove(); resetMatch();">🔄 NEW MATCH</button>' +
+    '</div>' +
+
+    '</div></div>';
+
+  document.body.insertAdjacentHTML('beforeend', html);
 }
 
 
