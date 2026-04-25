@@ -1440,6 +1440,37 @@ function renderHeaderOverBalls() {
 }
 
 function updatePlayerUI() {
+  // If match hasn't started yet, hide defaults
+  if (STATE.innings === 1 && STATE.legalBalls === 0 && STATE.extras === 0 && STATE.wickets === 0 && STATE.eventHistory.length === 0) {
+    setText('striker-name', '— Waiting for Toss —');
+    setText('striker-runs', '-');
+    setText('striker-balls', '-');
+    setText('striker-fours', '-');
+    setText('striker-sixes', '-');
+    setText('striker-sr', '-');
+    setText('striker-avatar', '?');
+    const srBar = document.getElementById('striker-sr-bar');
+    if (srBar) srBar.style.width = '0%';
+
+    setText('nonstriker-name', '— Waiting for Toss —');
+    setText('nonstriker-runs', '-');
+    setText('nonstriker-balls', '-');
+    setText('nonstriker-fours', '-');
+    setText('nonstriker-sixes', '-');
+    setText('nonstriker-sr', '-');
+    setText('nonstriker-avatar', '?');
+
+    setText('bowler-name', '— Match Not Started —');
+    setText('bowler-overs', '-');
+    setText('bowler-runs', '-');
+    setText('bowler-wkts', '-');
+    setText('bowler-econ', '-');
+    setText('bowler-wides', '-');
+    setText('bowler-nb', '-');
+    setText('bowler-avatar', '?');
+    return;
+  }
+
   // Striker
   const s = STATE.striker;
   setText('striker-name', s.name);
