@@ -305,6 +305,8 @@ function getInitials(name) {
 // MAIN EVENT HANDLER
 // ============================================================
 function addEvent(type) {
+  if (STATE.matchEnded) return;
+
   // Animate button
   const btnMap = {
     dot: 'btn-dot', '1': 'btn-1', '2': 'btn-2', '3': 'btn-3',
@@ -1828,8 +1830,12 @@ function toggleDew() {
 function checkAllOut() {
   // 10 wickets = all out (or user-set max wickets)
   if (STATE.wickets >= 10) {
-    // Small delay so the W chip renders first
-    setTimeout(() => showAllOutModal(), 600);
+    if (STATE.innings === 1) {
+      setTimeout(() => showAllOutModal(), 600);
+    } else {
+      STATE.matchEnded = true;
+      setTimeout(() => showMatchSummaryModal(), 600);
+    }
   }
 }
 
