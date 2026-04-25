@@ -824,10 +824,15 @@ function buildMatchPrompt() {
     'TIME DELAYS ACCUMULATED: +' + STATE.totalAddedSeconds + 's added, -' + STATE.totalReducedSeconds + 's reduced (net: ' + netSec + 's)\n' +
     'MATCH START: ' + formatTimeFromMinutes(STATE.baseTimeMinutes) + '\n' +
     'DEW FACTOR: ' + (STATE.isDew ? 'YES' : 'NO') + '\n\n' +
+    'CRITICAL TRANSIT OBJECTIVE: Analyze the correlation between wickets fallen (' + STATE.wickets + ') and ' +
+    'the current run rate (' + crr + '). If more wickets are falling, runs typically decrease, leading to fewer boundary delays ' +
+    'but quicker innings completion (all-out scenario). Calculate the transit pipeline impact: if the match ends ' +
+    'earlier or later than originally scheduled, how specifically should metro and bus dispatch (usually 30 buses) be adjusted? ' +
+    'Keep these strategic factors in mind and make the transit synchronization system as efficient as possible.\n\n' +
     'Using T20 match pacing data (avg 25s per legal delivery), project event frequency ' +
     'for remaining ' + remain + ' balls and return ONLY this JSON:\n' +
     '{"endTime":"HH:MM AM/PM","confidence":85,"delayBreakdown":{"wides":30,"wickets":60,"overChanges":90,"drs":0},' +
-    '"reasoning":"2-sentence explanation","pace":"X.X seconds per ball"}';
+    '"reasoning":"3-sentence explanation including wicked/run-rate analysis and exact transit dispatch adjustment recommendations","pace":"X.X seconds per ball"}';
 }
 
 function formatTimeFromMinutes(totalMin) {
@@ -1128,6 +1133,12 @@ function updateTimePrediction() {
   document.getElementById('predicted-time-big').textContent = timeStr;
   document.getElementById('base-time-display').textContent = baseStr;
 
+  // Match Start Time Display (Header)
+  const matchStartEl = document.getElementById('match-start-display');
+  if (matchStartEl) {
+    matchStartEl.textContent = formatTimeFromMinutes(STATE.baseTimeMinutes);
+  }
+
   // Transport Dispatch Layer Integration
   const crr = STATE.legalBalls > 0 ? (STATE.runs / (STATE.legalBalls / 6)) : 0;
   const ballsLeft = STATE.totalOvers * 6 - STATE.legalBalls;
@@ -1328,6 +1339,19 @@ function updateScoreboard() {
   setText('extras-bar-val', STATE.extras);
   setText('wd-count', STATE.wides);
   setText('nb-count', STATE.noBalls);
+
+  // ── DYNAMIC BATTING/BOWLING LABELS ─────────────────────────
+  const teamAElement = document.getElementById('team-a-name');
+  const teamBElement = document.getElementById('team-b-name');
+  if (teamAElement && teamBElement) {
+    if (STATE.innings === 1) {
+      teamAElement.innerHTML = STATE.teamA + ' <span class="bat-ind">(BATTING)</span>';
+      teamBElement.innerHTML = STATE.teamB + ' <span class="bowl-ind">(BOWLING)</span>';
+    } else {
+      teamAElement.innerHTML = STATE.teamA + ' <span class="bowl-ind">(BOWLING)</span>';
+      teamBElement.innerHTML = STATE.teamB + ' <span class="bat-ind">(BATTING)</span>';
+    }
+  }
   setText('bye-count', STATE.byes);
   setText('lb-count', STATE.legByes);
 

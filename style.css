@@ -200,6 +200,16 @@ body {
   letter-spacing: 1.5px;
   text-transform: uppercase;
 }
+.bat-ind {
+  color: var(--accent-green);
+  font-size: 0.6rem;
+  margin-left: 4px;
+}
+.bowl-ind {
+  color: var(--accent-yellow);
+  font-size: 0.6rem;
+  margin-left: 4px;
+}
 
 .score-display {
   font-family: 'Orbitron', monospace;
